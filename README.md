@@ -98,6 +98,25 @@ Notes:
 - Presigned URLs point directly at `STORAGE_ENDPOINT`, so the R2 bucket must allow public reads for those URLs to load in a browser, or you should put a [custom domain / R2.dev public bucket](https://developers.cloudflare.com/r2/buckets/public-buckets/) in front and adjust `getPresignedDownloadUrl` accordingly if you want CDN caching instead of presigned reads.
 - R2 free tier has no egress fees, which is the main reason to prefer it over S3 here.
 
+### Alternative: DigitalOcean Spaces
+
+Also S3-compatible, so it's the same `STORAGE_*` env vars, no code changes:
+
+1. In the DigitalOcean control panel, go to **Spaces Object Storage** → create a Space, picking a region (e.g. `nyc3`, `ams3`, `sgp1`, `fra1`, `sfo3`).
+2. Go to **API → Spaces Keys** → generate a new key pair. Note: unlike R2, Spaces keys are account-wide, not scoped to a single bucket — there's no way to restrict a key to just this Space.
+3. Set:
+
+   ```bash
+   STORAGE_ENDPOINT=https://<region>.digitaloceanspaces.com
+   STORAGE_REGION=<region>
+   STORAGE_ACCESS_KEY_ID=<spaces access key>
+   STORAGE_SECRET_ACCESS_KEY=<spaces secret key>
+   STORAGE_BUCKET=<your space name>
+   STORAGE_FORCE_PATH_STYLE=false
+   ```
+
+- Same public-read caveat as R2 applies to presigned URLs. Spaces also has a built-in CDN endpoint (`<bucket>.<region>.cdn.digitaloceanspaces.com`) if you'd rather serve public files through that instead of presigned URLs.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
