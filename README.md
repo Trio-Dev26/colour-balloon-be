@@ -57,6 +57,47 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Object storage
+
+Object storage (`src/storage/`) is accessed via `@aws-sdk/client-s3`, configured entirely through the `STORAGE_*` env vars in `storage.config.ts` — so the same code targets [MinIO](https://min.io) locally and [Cloudflare R2](https://developers.cloudflare.com/r2/) in production, no code changes needed between environments.
+
+`StorageService` (injectable anywhere, exported globally by `StorageModule`) exposes `uploadFile`, `deleteFile`, `getPresignedUploadUrl`, `getPresignedDownloadUrl`, and `listFiles`.
+
+### Local development (MinIO)
+
+```bash
+# copy env defaults
+$ cp .env.example .env
+
+# start MinIO (and auto-create the default bucket)
+$ docker compose up -d
+```
+
+- API: http://localhost:9000
+- Console: http://localhost:9001 (login with `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` from `.env`)
+
+### Production (Cloudflare R2)
+
+1. In the Cloudflare dashboard, go to **R2 Object Storage** → create a bucket (e.g. `colour-balloon`).
+2. Under **R2 → Manage API tokens**, create an API token scoped to that bucket (Object Read & Write is enough — avoid account-wide tokens). Save the **Access Key ID** and **Secret Access Key** shown once.
+3. Note your **Account ID** (Cloudflare dashboard sidebar, or the R2 overview page).
+4. Set these env vars wherever the backend actually runs in production (host/platform secrets manager — do **not** commit them):
+
+   ```bash
+   STORAGE_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+   STORAGE_REGION=auto
+   STORAGE_ACCESS_KEY_ID=<r2 access key id>
+   STORAGE_SECRET_ACCESS_KEY=<r2 secret access key>
+   STORAGE_BUCKET=colour-balloon
+   STORAGE_FORCE_PATH_STYLE=false
+   CORS_ORIGIN=https://<your-production-frontend-domain>
+   ```
+
+Notes:
+- `STORAGE_FORCE_PATH_STYLE=false` is required for R2's virtual-hosted-style URLs (MinIO needs `true`, which is the local default).
+- Presigned URLs point directly at `STORAGE_ENDPOINT`, so the R2 bucket must allow public reads for those URLs to load in a browser, or you should put a [custom domain / R2.dev public bucket](https://developers.cloudflare.com/r2/buckets/public-buckets/) in front and adjust `getPresignedDownloadUrl` accordingly if you want CDN caching instead of presigned reads.
+- R2 free tier has no egress fees, which is the main reason to prefer it over S3 here.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
