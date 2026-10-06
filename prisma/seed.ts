@@ -32,7 +32,6 @@ async function main() {
     where: { email },
     update: {},
     create: {
-      userId: username,
       username,
       fullname: 'Admin',
       email,
