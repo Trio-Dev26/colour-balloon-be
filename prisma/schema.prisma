@@ -12,16 +12,32 @@ datasource db {
   provider = "postgresql"
 }
 
-
 model User {
-  id        String    @id @default(uuid(7)) @db.Uuid()
-  userId    String    @unique @map("user_id")
-  username  String    @unique
+  id        String   @id @default(uuid(7)) @db.Uuid()
+  userId    String   @unique @default(dbgenerated("next_user_id()")) @map("user_id")
+  username  String   @unique
   fullname  String
-  email     String    @unique
+  email     String   @unique
   password  String
-  createdAt  DateTime   @default(now()) @map("created_at")
-  updatedAt  DateTime  @map("updated_at")
+
+  role   Role   @relation(fields: [roleId], references: [id])
+  roleId String @map("role_id") @db.Uuid()
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users")
 }
+
+model Role {
+  id    String @id @default(uuid(7)) @db.Uuid()
+  name  String @unique
+  users User[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
+
+
