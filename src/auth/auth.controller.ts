@@ -6,12 +6,11 @@ import {
   Req,
   Res,
   UnauthorizedException,
-  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { AuthService, ADMIN_ROLE } from './auth.service';
+import { AuthService } from './auth.service';
 import {
   REFRESH_COOKIE,
   clearAuthCookies,
@@ -19,9 +18,7 @@ import {
 } from './auth-cookies';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { RolesGuard } from './guards/roles.guard';
-import { Roles } from './decorators/roles.decorator';
+import { AdminOnly } from './decorators/admin-only.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { JwtPayload } from './strategies/jwt.strategy';
 
@@ -83,9 +80,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(ADMIN_ROLE)
+  @AdminOnly()
   me(@CurrentUser() user: JwtPayload) {
     return user;
   }
