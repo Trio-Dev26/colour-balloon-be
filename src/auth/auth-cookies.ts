@@ -2,8 +2,8 @@ import type { Response } from 'express';
 
 export const ACCESS_COOKIE = 'access_token';
 export const REFRESH_COOKIE = 'refresh_token';
-// refresh cookie is only ever sent to the refresh endpoint
-const REFRESH_PATH = '/auth/admin/refresh';
+// path '/' so the dashboard's proxy can see the session cookie on page routes
+const REFRESH_PATH = '/';
 
 // cookie lifetime = the JWT's own exp, so the two can't drift apart
 const expiry = (jwt: string) =>

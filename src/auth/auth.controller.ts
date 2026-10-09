@@ -54,15 +54,21 @@ export class AuthController {
     @Body() dto: RefreshDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const token =
-      (req.cookies?.[REFRESH_COOKIE] as string | undefined) ?? dto.refreshToken;
+    const cookies = req.cookies as Record<string, string | undefined>;
+    const token = cookies[REFRESH_COOKIE] ?? dto?.refreshToken;
     if (!token) throw new UnauthorizedException('Missing refresh token');
 
-    setAuthCookies(
-      res,
-      await this.authService.refresh(token),
-      this.cookieSecure,
-    );
+    try {
+      setAuthCookies(
+        res,
+        await this.authService.refresh(token),
+        this.cookieSecure,
+      );
+    } catch (error) {
+      // a rejected token is dead for good; drop it so the dashboard proxy stops treating it as a session
+      clearAuthCookies(res);
+      throw error;
+    }
     return { success: true };
   }
 
