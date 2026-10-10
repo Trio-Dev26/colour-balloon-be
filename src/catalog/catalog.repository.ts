@@ -15,6 +15,20 @@ export class CatalogRepository {
     return this.prisma.category.findMany({ select: TAXONOMY_SELECT });
   }
 
+  findLevelById(id: string) {
+    return this.prisma.level.findUnique({
+      where: { id },
+      select: TAXONOMY_SELECT,
+    });
+  }
+
+  findCategoryById(id: string) {
+    return this.prisma.category.findUnique({
+      where: { id },
+      select: TAXONOMY_SELECT,
+    });
+  }
+
   /** Creates missing entries and refreshes the titles of existing ones, atomically. */
   async upsertAll(
     levels: readonly CatalogEntry[],

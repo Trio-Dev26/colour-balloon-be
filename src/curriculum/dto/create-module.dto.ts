@@ -1,10 +1,12 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsNotEmpty,
   IsObject,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
 } from 'class-validator';
 import type { Prisma } from '../../../generated/prisma/client';
@@ -31,6 +33,19 @@ const RichText = (description: string) =>
   );
 
 export class CreateModuleDto {
+  @ApiProperty({
+    example: 'M01',
+    description:
+      'Module number. The stored code is LEVEL-CATEGORY-<code> (e.g. BEGINNER-READING-M01); the prefix follows the module level and category automatically.',
+  })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  @Matches(/^[A-Z0-9_]{1,10}$/, {
+    message: 'code must be 1-10 letters, numbers or underscores (e.g. M01)',
+  })
+  code: string;
+
   @RequiredText(200, 'Myanmar Reading Basics')
   titleEn: string;
 

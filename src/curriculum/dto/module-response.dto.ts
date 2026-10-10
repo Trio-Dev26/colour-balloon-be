@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ModuleStatus } from '../../../generated/prisma/enums';
 import { TaxonomyResponseDto } from '../../catalog/dto/taxonomy-response.dto';
 
 const jsonObject = { type: 'object', additionalProperties: true } as const;
@@ -6,6 +7,12 @@ const jsonObject = { type: 'object', additionalProperties: true } as const;
 export class ModuleResponseDto {
   @ApiProperty({ format: 'uuid' })
   id: string;
+
+  @ApiProperty({ example: 'BEGINNER-READING-M01' })
+  code: string;
+
+  @ApiProperty({ enum: ModuleStatus, enumName: 'ModuleStatus' })
+  status: ModuleStatus;
 
   @ApiProperty()
   titleEn: string;

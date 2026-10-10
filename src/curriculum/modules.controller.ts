@@ -28,6 +28,7 @@ import {
   ModuleListResponseDto,
   ModuleResponseDto,
 } from './dto/module-response.dto';
+import { UpdateModuleStatusDto } from './dto/update-module-status.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { ModulesService } from './modules.service';
 
@@ -59,7 +60,7 @@ export class ModulesController {
     description: 'Invalid body or unknown level/category',
   })
   @ApiConflictResponse({
-    description: 'A module with this title already exists',
+    description: 'A module with this code or title already exists',
   })
   create(@Body() dto: CreateModuleDto) {
     return this.modulesService.create(dto);
@@ -77,6 +78,20 @@ export class ModulesController {
   })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateModuleDto) {
     return this.modulesService.update(id, dto);
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({
+    summary: 'Change a module status (DRAFT, PUBLISHED or UNPUBLISHED)',
+  })
+  @ApiOkResponse({ type: ModuleResponseDto })
+  @ApiBadRequestResponse({ description: 'Invalid status' })
+  @ApiNotFoundResponse({ description: 'Module does not exist' })
+  updateStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateModuleStatusDto,
+  ) {
+    return this.modulesService.updateStatus(id, dto.status);
   }
 
   @Delete(':id')
