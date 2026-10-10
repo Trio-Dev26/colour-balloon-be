@@ -12,6 +12,14 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ModuleStatus {
+  DRAFT
+  PUBLISHED
+  UNPUBLISHED
+
+  @@map("module_status")
+}
+
 model User {
   id       String @id @default(uuid(7)) @db.Uuid()
   userId   String @unique @default(dbgenerated("next_user_id()")) @map("user_id")
@@ -65,21 +73,23 @@ model Category {
 }
 
 model Module {
-  id                String   @id @default(uuid(7)) @db.Uuid()
-  titleEn           String   @unique @map("title_en") @db.VarChar
-  titleMy           String   @unique @map("title_my") @db.VarChar
-  descriptionEn     Json     @map("description_en") @db.JsonB
-  descriptionMy     Json     @map("description_my") @db.JsonB
-  learningGoalEn    String   @map("learning_goal_en") @db.VarChar
-  learningGoalMy    String   @map("learning_goal_my") @db.VarChar
-  learningOutcomeEn Json     @map("learning_outcome_en") @db.JsonB
-  learningOutcomeMy Json     @map("learning_outcome_my") @db.JsonB
-  level             Level    @relation(fields: [levelId], references: [id])
-  levelId           String   @map("level_id") @db.Uuid()
-  category          Category @relation(fields: [categoryId], references: [id])
-  categoryId        String   @map("category_id") @db.Uuid()
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                String       @id @default(uuid(7)) @db.Uuid()
+  code              String       @unique @db.VarChar
+  titleEn           String       @unique @map("title_en") @db.VarChar
+  titleMy           String       @unique @map("title_my") @db.VarChar
+  descriptionEn     Json         @map("description_en") @db.JsonB
+  descriptionMy     Json         @map("description_my") @db.JsonB
+  learningGoalEn    String       @map("learning_goal_en") @db.VarChar
+  learningGoalMy    String       @map("learning_goal_my") @db.VarChar
+  learningOutcomeEn Json         @map("learning_outcome_en") @db.JsonB
+  learningOutcomeMy Json         @map("learning_outcome_my") @db.JsonB
+  status            ModuleStatus @default(DRAFT)
+  level             Level        @relation(fields: [levelId], references: [id])
+  levelId           String       @map("level_id") @db.Uuid()
+  category          Category     @relation(fields: [categoryId], references: [id])
+  categoryId        String       @map("category_id") @db.Uuid()
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
 
   @@index([levelId, categoryId])
   @@map("modules")

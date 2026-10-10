@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../generated/prisma/client';
+import type { ModuleStatus } from '../../generated/prisma/enums';
 import { TAXONOMY_SELECT } from '../catalog/taxonomy.select';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface ModuleFilter {
-  /** Case-insensitive match on the English or Myanmar title. */
+  /** Case-insensitive match on the code, English title or Myanmar title. */
   search?: string;
+  status?: ModuleStatus;
   levelId?: string;
   categoryId?: string;
 }
@@ -60,14 +62,17 @@ export class ModulesRepository {
 
   private toWhere({
     search,
+    status,
     levelId,
     categoryId,
   }: ModuleFilter): Prisma.ModuleWhereInput {
     return {
+      status,
       levelId,
       categoryId,
       ...(search && {
         OR: [
+          { code: { contains: search, mode: 'insensitive' } },
           { titleEn: { contains: search, mode: 'insensitive' } },
           { titleMy: { contains: search } },
         ],
