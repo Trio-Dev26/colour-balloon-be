@@ -6,11 +6,12 @@ export const REFRESH_COOKIE = 'refresh_token';
 const REFRESH_PATH = '/';
 
 // cookie lifetime = the JWT's own exp, so the two can't drift apart
-const expiry = (jwt: string) =>
-  new Date(
-    JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString()).exp *
-      1000,
-  );
+const expiry = (jwt: string) => {
+  const { exp } = JSON.parse(
+    Buffer.from(jwt.split('.')[1], 'base64url').toString(),
+  ) as { exp: number };
+  return new Date(exp * 1000);
+};
 
 export function setAuthCookies(
   res: Response,

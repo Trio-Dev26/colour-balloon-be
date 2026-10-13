@@ -3,6 +3,6 @@ import type { JwtPayload } from '../strategies/jwt.strategy';
 
 export const CurrentUser = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): JwtPayload => {
-    return ctx.switchToHttp().getRequest().user;
+    return ctx.switchToHttp().getRequest<{ user: JwtPayload }>().user;
   },
 );
