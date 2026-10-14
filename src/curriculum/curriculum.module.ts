@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { CatalogModule } from '../catalog/catalog.module';
-import { ModulesController } from './modules.controller';
-import { ModulesRepository } from './modules.repository';
-import { ModulesService } from './modules.service';
+import { ModulesController } from './modules/modules.controller';
+import { ModulesRepository } from './modules/modules.repository';
+import { ModulesService } from './modules/modules.service';
+import { UnitsController } from './units/units.controller';
+import { UnitsRepository } from './units/units.repository';
+import { UnitsService } from './units/units.service';
 
 @Module({
-  imports: [CatalogModule],
-  controllers: [ModulesController],
-  providers: [ModulesService, ModulesRepository],
+  controllers: [ModulesController, UnitsController],
+  providers: [ModulesService, ModulesRepository, UnitsService, UnitsRepository],
 })
 export class CurriculumModule {}

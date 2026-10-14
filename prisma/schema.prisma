@@ -88,9 +88,37 @@ model Module {
   levelId           String       @map("level_id") @db.Uuid()
   category          Category     @relation(fields: [categoryId], references: [id])
   categoryId        String       @map("category_id") @db.Uuid()
+  units             Unit[]
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
 
   @@index([levelId, categoryId])
   @@map("modules")
+}
+
+model Unit {
+  id            String   @id @default(uuid(7)) @db.Uuid()
+  code          String   @unique @db.VarChar
+  /// Display and unlock order inside the module; independent of the code.
+  sequence      Int
+  titleEn       String   @map("title_en") @db.VarChar
+  titleMy       String   @map("title_my") @db.VarChar
+  descriptionEn Json     @map("description_en") @db.JsonB
+  descriptionMy Json     @map("description_my") @db.JsonB
+  module        Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId      String   @map("module_id") @db.Uuid()
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([moduleId, sequence])
+  @@map("units")
+}
+
+/// Last number handed out per code prefix ("FM", "FM01-U", ...), so codes of
+/// deleted records are never reused.
+model CodeSequence {
+  scope     String @id @db.VarChar
+  lastValue Int    @map("last_value")
+
+  @@map("code_sequences")
 }

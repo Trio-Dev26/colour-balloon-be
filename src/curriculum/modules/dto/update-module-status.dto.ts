@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
-import { ModuleStatus } from '../../../generated/prisma/enums';
+import { ModuleStatus } from '../../../../generated/prisma/enums';
 
 export class UpdateModuleStatusDto {
   @ApiProperty({

@@ -23,14 +23,4 @@ export class CatalogService {
     const categories = await this.catalogRepository.findCategories();
     return categories.sort(byCatalogOrder(CATEGORIES));
   }
-
-  /** Returns null when the level does not exist. */
-  findLevelById(id: string) {
-    return this.catalogRepository.findLevelById(id);
-  }
-
-  /** Returns null when the category does not exist. */
-  findCategoryById(id: string) {
-    return this.catalogRepository.findCategoryById(id);
-  }
 }
