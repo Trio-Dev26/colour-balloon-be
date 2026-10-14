@@ -21,7 +21,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { AdminOnly } from '../auth/decorators/admin-only.decorator';
+import { AdminOnly } from '../../auth/decorators/admin-only.decorator';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { ListModulesQueryDto } from './dto/list-modules-query.dto';
 import {
@@ -60,14 +60,16 @@ export class ModulesController {
     description: 'Invalid body or unknown level/category',
   })
   @ApiConflictResponse({
-    description: 'A module with this code or title already exists',
+    description: 'A module with this title already exists',
   })
   create(@Body() dto: CreateModuleDto) {
     return this.modulesService.create(dto);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update any fields of a module' })
+  @ApiOperation({
+    summary: 'Update any fields of a module (the code never changes)',
+  })
   @ApiOkResponse({ type: ModuleResponseDto })
   @ApiBadRequestResponse({
     description: 'Invalid body or unknown level/category',
@@ -87,6 +89,10 @@ export class ModulesController {
   @ApiOkResponse({ type: ModuleResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid status' })
   @ApiNotFoundResponse({ description: 'Module does not exist' })
+  @ApiConflictResponse({
+    description:
+      'Transition not allowed: back to Draft, Draft to Unpublished, or publishing without units',
+  })
   updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateModuleStatusDto,
@@ -96,10 +102,12 @@ export class ModulesController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a module' })
+  @ApiOperation({ summary: 'Delete a Draft module and all its units' })
   @ApiNoContentResponse({ description: 'Module deleted' })
   @ApiNotFoundResponse({ description: 'Module does not exist' })
-  @ApiConflictResponse({ description: 'Module still has content' })
+  @ApiConflictResponse({
+    description: 'Module has been published; unpublish it instead',
+  })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.modulesService.remove(id);
   }

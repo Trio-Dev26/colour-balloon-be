@@ -7,6 +7,5 @@ import { CatalogService } from './catalog.service';
 @Module({
   controllers: [CatalogController],
   providers: [CatalogService, CatalogRepository, CatalogSeeder],
-  exports: [CatalogService],
 })
 export class CatalogModule {}

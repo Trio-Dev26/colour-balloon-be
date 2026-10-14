@@ -5,7 +5,10 @@ export class TaxonomyResponseDto {
   @ApiProperty({ format: 'uuid' })
   id: string;
 
-  @ApiProperty({ example: 'FOUNDATION' })
+  @ApiProperty({
+    example: 'F',
+    description: 'One-letter code',
+  })
   code: string;
 
   @ApiProperty({ example: 'Foundation' })
