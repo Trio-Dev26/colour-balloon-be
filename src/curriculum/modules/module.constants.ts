@@ -27,3 +27,18 @@ export const MODULE_FOREIGN_KEY_VIOLATIONS: Readonly<Record<string, string>> = {
   modules_level_id_fkey: MODULE_ERRORS.LEVEL_NOT_FOUND,
   modules_category_id_fkey: MODULE_ERRORS.CATEGORY_NOT_FOUND,
 };
+
+/** Thumbnail upload rules (PRD FR-CUR-002: JPG/PNG up to 20 MB). */
+export const MODULE_THUMBNAIL = {
+  FIELD: 'file',
+  MAX_BYTES: 20 * 1024 * 1024,
+  /** Checked against the file's real bytes, not the client-sent content type. */
+  MIME_TYPES: /^image\/(jpeg|png)$/,
+  EXTENSIONS: { 'image/jpeg': 'jpg', 'image/png': 'png' } as Record<
+    string,
+    string
+  >,
+  /** Object key: one folder per module, a fresh name per upload (no stale caches). */
+  key: (moduleId: string, uuid: string, extension: string) =>
+    `modules/${moduleId}/thumbnail-${uuid}.${extension}`,
+} as const;

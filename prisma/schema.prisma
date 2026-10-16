@@ -84,6 +84,8 @@ model Module {
   learningOutcomeEn Json         @map("learning_outcome_en") @db.JsonB
   learningOutcomeMy Json         @map("learning_outcome_my") @db.JsonB
   status            ModuleStatus @default(DRAFT)
+  /// Object-storage key of the thumbnail image; served through signed URLs only.
+  thumbnailKey      String?      @map("thumbnail_key") @db.VarChar
   level             Level        @relation(fields: [levelId], references: [id])
   levelId           String       @map("level_id") @db.Uuid()
   category          Category     @relation(fields: [categoryId], references: [id])
