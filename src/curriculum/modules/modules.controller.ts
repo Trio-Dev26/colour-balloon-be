@@ -7,13 +7,22 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  ParseFilePipe,
+  FileTypeValidator,
   Patch,
   Post,
+  Put,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBadRequestResponse,
+  ApiBody,
   ApiConflictResponse,
+  ApiConsumes,
+  ApiPayloadTooLargeResponse,
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
@@ -30,6 +39,7 @@ import {
 } from './dto/module-response.dto';
 import { UpdateModuleStatusDto } from './dto/update-module-status.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
+import { MODULE_THUMBNAIL } from './module.constants';
 import { ModulesService } from './modules.service';
 
 @ApiTags('modules')
@@ -98,6 +108,58 @@ export class ModulesController {
     @Body() dto: UpdateModuleStatusDto,
   ) {
     return this.modulesService.updateStatus(id, dto.status);
+  }
+
+  @Put(':id/thumbnail')
+  @ApiOperation({ summary: 'Upload or replace the module thumbnail image' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: [MODULE_THUMBNAIL.FIELD],
+      properties: {
+        [MODULE_THUMBNAIL.FIELD]: {
+          type: 'string',
+          format: 'binary',
+          description: 'JPG or PNG, up to 20 MB',
+        },
+      },
+    },
+  })
+  @ApiOkResponse({ type: ModuleResponseDto })
+  @ApiBadRequestResponse({ description: 'Missing file, or not a JPG/PNG' })
+  @ApiPayloadTooLargeResponse({ description: 'File is larger than 20 MB' })
+  @ApiNotFoundResponse({ description: 'Module does not exist' })
+  @UseInterceptors(
+    // The size limit stops oversized uploads before they are buffered in memory.
+    FileInterceptor(MODULE_THUMBNAIL.FIELD, {
+      limits: { fileSize: MODULE_THUMBNAIL.MAX_BYTES, files: 1 },
+    }),
+  )
+  setThumbnail(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new FileTypeValidator({
+            fileType: MODULE_THUMBNAIL.MIME_TYPES,
+            // Store the type detected from the bytes, not the client's claim.
+            overrideMimeType: true,
+          }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.modulesService.setThumbnail(id, file);
+  }
+
+  @Delete(':id/thumbnail')
+  @ApiOperation({ summary: 'Remove the module thumbnail image' })
+  @ApiOkResponse({ type: ModuleResponseDto })
+  @ApiNotFoundResponse({ description: 'Module does not exist' })
+  removeThumbnail(@Param('id', ParseUUIDPipe) id: string) {
+    return this.modulesService.removeThumbnail(id);
   }
 
   @Delete(':id')

@@ -20,6 +20,13 @@ export class ModuleResponseDto {
   @ApiProperty({ example: 3, description: 'Number of units in the module' })
   unitCount: number;
 
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Signed URL of the thumbnail image, valid for 1 hour',
+  })
+  thumbnailUrl: string | null;
+
   @ApiProperty()
   titleEn: string;
 
