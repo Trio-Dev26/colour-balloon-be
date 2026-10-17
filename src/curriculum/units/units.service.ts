@@ -36,6 +36,8 @@ export class UnitsService {
 
   /** A new unit goes to the end of its module, with the next free code (e.g. U003). */
   async create(dto: CreateUnitDto) {
+    // A deleted module still exists in the table, so the foreign key alone doesn't reject it.
+    await this.requireModule(dto.moduleId);
     try {
       return await this.unitsRepository.create(dto);
     } catch (error) {
@@ -46,7 +48,9 @@ export class UnitsService {
     }
   }
 
+  /** A new moduleId moves the unit to the end of that module. */
   async update(id: string, dto: UpdateUnitDto) {
+    if (dto.moduleId) await this.requireModule(dto.moduleId);
     try {
       return await this.unitsRepository.update(id, dto);
     } catch (error) {
@@ -78,7 +82,7 @@ export class UnitsService {
     // TODO(D18): once progress is tracked, reject deleting a unit a student has
     // started inside a Published/Unpublished module.
     try {
-      await this.unitsRepository.delete(id);
+      await this.unitsRepository.softDelete(id);
     } catch (error) {
       if (isPrismaError(error, 'P2025')) throw this.notFound(id);
       throw error;

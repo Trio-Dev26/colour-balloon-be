@@ -89,7 +89,8 @@ export class ModulesService {
 
   /**
    * Only Draft modules can be deleted, together with all their content
-   * (Decision Log D18). Published content is unpublished instead.
+   * (Decision Log D18). Published content is unpublished instead. Deleting
+   * hides the records; they stay in the database (PRD FR-CUR-012).
    */
   async remove(id: string): Promise<void> {
     const current = await this.findOne(id);
@@ -98,7 +99,7 @@ export class ModulesService {
     }
 
     try {
-      await this.modulesRepository.delete(id);
+      await this.modulesRepository.softDelete(id);
     } catch (error) {
       if (isPrismaError(error, 'P2025')) throw this.notFound(id);
       throw error;
