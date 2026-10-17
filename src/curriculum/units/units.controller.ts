@@ -74,7 +74,9 @@ export class UnitsController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update the titles or descriptions of a unit' })
+  @ApiOperation({
+    summary: 'Update a unit; a new moduleId moves it to the end of that module',
+  })
   @ApiOkResponse({ type: UnitResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid body' })
   @ApiNotFoundResponse({ description: 'Unit does not exist' })

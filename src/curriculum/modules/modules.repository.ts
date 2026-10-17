@@ -5,6 +5,7 @@ import { TAXONOMY_SELECT } from '../../catalog/taxonomy.select';
 import { nextCodeNumber } from '../../prisma/code-sequence';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CODE_PREFIX, formatCode } from '../shared/codes';
+import { NOT_DELETED } from '../shared/soft-delete';
 
 export interface ModuleFilter {
   /** Case-insensitive match on the code, English title or Myanmar title. */
@@ -17,7 +18,7 @@ export interface ModuleFilter {
 const MODULE_INCLUDE = {
   level: { select: TAXONOMY_SELECT },
   category: { select: TAXONOMY_SELECT },
-  _count: { select: { units: true } },
+  _count: { select: { units: { where: NOT_DELETED } } },
 } as const satisfies Prisma.ModuleInclude;
 
 type ModuleRow = Prisma.ModuleGetPayload<{ include: typeof MODULE_INCLUDE }>;
@@ -50,7 +51,7 @@ export class ModulesRepository {
 
   async findById(id: string) {
     const row = await this.prisma.module.findUnique({
-      where: { id },
+      where: { id, ...NOT_DELETED },
       include: MODULE_INCLUDE,
     });
     return row && toModule(row);
@@ -71,16 +72,29 @@ export class ModulesRepository {
 
   async update(id: string, data: Prisma.ModuleUncheckedUpdateInput) {
     const row = await this.prisma.module.update({
-      where: { id },
+      where: { id, ...NOT_DELETED },
       data,
       include: MODULE_INCLUDE,
     });
     return toModule(row);
   }
 
-  /** Deletes the module; its units go with it (ON DELETE CASCADE). */
-  async delete(id: string): Promise<void> {
-    await this.prisma.module.delete({ where: { id } });
+  /**
+   * Hides the module and all its units (PRD FR-CUR-012, D18); nothing is erased.
+   * Throws P2025 when the module doesn't exist or is already deleted.
+   */
+  async softDelete(id: string): Promise<void> {
+    const deletedAt = new Date();
+    await this.prisma.$transaction([
+      this.prisma.module.update({
+        where: { id, ...NOT_DELETED },
+        data: { deletedAt },
+      }),
+      this.prisma.unit.updateMany({
+        where: { moduleId: id, ...NOT_DELETED },
+        data: { deletedAt },
+      }),
+    ]);
   }
 
   private toWhere({
@@ -90,6 +104,7 @@ export class ModulesRepository {
     categoryId,
   }: ModuleFilter): Prisma.ModuleWhereInput {
     return {
+      ...NOT_DELETED,
       status,
       levelId,
       categoryId,

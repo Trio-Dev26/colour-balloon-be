@@ -4,8 +4,9 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider        = "prisma-client"
+  previewFeatures = ["partialIndexes"]
+  output          = "../generated/prisma"
 }
 
 datasource db {
@@ -75,8 +76,8 @@ model Category {
 model Module {
   id                String       @id @default(uuid(7)) @db.Uuid()
   code              String       @unique @db.VarChar
-  titleEn           String       @unique @map("title_en") @db.VarChar
-  titleMy           String       @unique @map("title_my") @db.VarChar
+  titleEn           String       @map("title_en") @db.VarChar
+  titleMy           String       @map("title_my") @db.VarChar
   descriptionEn     Json         @map("description_en") @db.JsonB
   descriptionMy     Json         @map("description_my") @db.JsonB
   learningGoalEn    String       @map("learning_goal_en") @db.VarChar
@@ -93,7 +94,12 @@ model Module {
   units             Unit[]
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
+  /// Set when an admin deletes the module (PRD FR-CUR-012: hidden, not erased).
+  deletedAt         DateTime?    @map("deleted_at")
 
+  // Titles stay unique among live modules only, so a deleted module frees its title.
+  @@unique([titleEn], map: "modules_title_en_key", where: raw("deleted_at IS NULL"))
+  @@unique([titleMy], map: "modules_title_my_key", where: raw("deleted_at IS NULL"))
   @@index([levelId, categoryId])
   @@map("modules")
 }
@@ -111,6 +117,8 @@ model Unit {
   moduleId      String   @map("module_id") @db.Uuid()
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
+  /// Set when an admin deletes the unit, or its module (PRD FR-CUR-012).
+  deletedAt     DateTime? @map("deleted_at")
 
   @@index([moduleId, sequence])
   @@map("units")
