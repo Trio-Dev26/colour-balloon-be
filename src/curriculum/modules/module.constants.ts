@@ -12,6 +12,8 @@ export const MODULE_ERRORS = {
     'A module that has been published cannot go back to Draft',
   CANNOT_UNPUBLISH_DRAFT: 'Only a published module can be unpublished',
   PUBLISH_NEEDS_UNIT: 'Add at least one unit before publishing this module',
+  PUBLISH_NEEDS_LESSON:
+    'Add at least one unit with a lesson before publishing this module',
   // Delete rules (Decision Log D18)
   CANNOT_DELETE_PUBLISHED:
     'This module has been published and cannot be deleted. Unpublish it instead.',

@@ -36,6 +36,11 @@ export class UnitsService {
     return found;
   }
 
+  /** The live unit, or null. Used by lessons to check their unit. */
+  findById(id: string) {
+    return this.unitsRepository.findById(id);
+  }
+
   /** A new unit goes to the end of its module, with the next free code (e.g. U003). */
   async create(dto: CreateUnitDto) {
     // A deleted module still exists in the table, so the foreign key alone doesn't reject it.

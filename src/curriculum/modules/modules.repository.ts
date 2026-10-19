@@ -79,8 +79,15 @@ export class ModulesRepository {
     return toModule(row);
   }
 
+  /** Live units that have at least one live lesson (D17 publish rule). */
+  countUnitsWithLessons(moduleId: string) {
+    return this.prisma.unit.count({
+      where: { moduleId, ...NOT_DELETED, lessons: { some: NOT_DELETED } },
+    });
+  }
+
   /**
-   * Hides the module and all its units (PRD FR-CUR-012, D18); nothing is erased.
+   * Hides the module, its units and their lessons (PRD FR-CUR-012, D18); nothing is erased.
    * Throws P2025 when the module doesn't exist or is already deleted.
    */
   async softDelete(id: string): Promise<void> {
@@ -92,6 +99,10 @@ export class ModulesRepository {
       }),
       this.prisma.unit.updateMany({
         where: { moduleId: id, ...NOT_DELETED },
+        data: { deletedAt },
+      }),
+      this.prisma.lesson.updateMany({
+        where: { unit: { moduleId: id }, ...NOT_DELETED },
         data: { deletedAt },
       }),
     ]);

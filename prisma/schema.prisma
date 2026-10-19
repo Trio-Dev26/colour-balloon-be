@@ -105,23 +105,44 @@ model Module {
 }
 
 model Unit {
-  id            String   @id @default(uuid(7)) @db.Uuid()
-  code          String   @unique @db.VarChar
+  id            String    @id @default(uuid(7)) @db.Uuid()
+  code          String    @unique @db.VarChar
   /// Display and unlock order inside the module; independent of the code.
   sequence      Int
-  titleEn       String   @map("title_en") @db.VarChar
-  titleMy       String   @map("title_my") @db.VarChar
-  descriptionEn Json     @map("description_en") @db.JsonB
-  descriptionMy Json     @map("description_my") @db.JsonB
-  module        Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  moduleId      String   @map("module_id") @db.Uuid()
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  titleEn       String    @map("title_en") @db.VarChar
+  titleMy       String    @map("title_my") @db.VarChar
+  descriptionEn Json      @map("description_en") @db.JsonB
+  descriptionMy Json      @map("description_my") @db.JsonB
+  module        Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId      String    @map("module_id") @db.Uuid()
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  lessons       Lesson[]
   /// Set when an admin deletes the unit, or its module (PRD FR-CUR-012).
   deletedAt     DateTime? @map("deleted_at")
 
   @@index([moduleId, sequence])
   @@map("units")
+}
+
+model Lesson {
+  id            String    @id @default(uuid(7)) @db.Uuid()
+  code          String    @unique @db.VarChar
+  /// Display and unlock order inside the unit; independent of the code.
+  sequence      Int
+  titleEn       String    @map("title_en") @db.VarChar
+  titleMy       String    @map("title_my") @db.VarChar
+  descriptionEn Json      @map("description_en") @db.JsonB
+  descriptionMy Json      @map("description_my") @db.JsonB
+  unit          Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unitId        String    @map("unit_id") @db.Uuid()
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  /// Set when an admin deletes the lesson, or its unit or module (PRD FR-CUR-012).
+  deletedAt     DateTime? @map("deleted_at")
+
+  @@index([unitId, sequence])
+  @@map("lessons")
 }
 
 /// Last number handed out per code prefix ("FM", "FM01-U", ...), so codes of
