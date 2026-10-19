@@ -8,4 +8,7 @@ export const UNIT_ERRORS = {
     'A unit can move only between Draft modules. Published and Unpublished modules have no Move.',
   REORDER_NEEDS_DRAFT:
     'Units can be reordered only in a Draft module. A published module keeps its order.',
+  // D18 asks "has a student started it?"; progress isn't tracked yet, so any non-Draft module blocks it.
+  DELETE_NEEDS_DRAFT:
+    'Units in a published module can’t be deleted yet. Delete units while the module is Draft.',
 } as const;

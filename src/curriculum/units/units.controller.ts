@@ -94,6 +94,7 @@ export class UnitsController {
   @ApiOperation({ summary: 'Delete a unit' })
   @ApiNoContentResponse({ description: 'Unit deleted' })
   @ApiNotFoundResponse({ description: 'Unit does not exist' })
+  @ApiConflictResponse({ description: 'The unit’s module is not Draft (D18)' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.unitsService.remove(id);
   }

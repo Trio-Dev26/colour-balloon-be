@@ -12,7 +12,15 @@ export interface UnitFilter {
 }
 
 const UNIT_INCLUDE = {
-  module: { select: { id: true, code: true, titleEn: true, titleMy: true } },
+  module: {
+    select: {
+      id: true,
+      code: true,
+      titleEn: true,
+      titleMy: true,
+      status: true,
+    },
+  },
 } as const satisfies Prisma.UnitInclude;
 
 /** Module first, then the position inside it (the learner's unlock order). */
