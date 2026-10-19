@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,6 +9,7 @@ import { CreateUnitDto } from './dto/create-unit.dto';
 import { ListUnitsQueryDto } from './dto/list-units-query.dto';
 import { ReorderUnitsDto } from './dto/reorder-units.dto';
 import { UpdateUnitDto } from './dto/update-unit.dto';
+import { ModuleStatus } from '../../../generated/prisma/enums';
 import { ModulesService } from '../modules/modules.service';
 import { UNIT_ERRORS } from './unit.constants';
 import { UnitsRepository } from './units.repository';
@@ -53,9 +55,24 @@ export class UnitsService {
     }
   }
 
-  /** A new moduleId moves the unit to the end of that module. */
+  /**
+   * A new moduleId moves the unit to the end of that module, only while both
+   * modules are Draft (Decision Log D28).
+   */
   async update(id: string, dto: UpdateUnitDto) {
-    if (dto.moduleId) await this.requireModule(dto.moduleId);
+    const current = await this.findOne(id);
+    if (dto.moduleId && dto.moduleId !== current.moduleId) {
+      const [from, to] = await Promise.all([
+        this.requireModule(current.moduleId),
+        this.requireModule(dto.moduleId),
+      ]);
+      if (
+        from.status !== ModuleStatus.DRAFT ||
+        to.status !== ModuleStatus.DRAFT
+      ) {
+        throw new ConflictException(UNIT_ERRORS.MOVE_NEEDS_DRAFT);
+      }
+    }
     try {
       return await this.unitsRepository.update(id, dto);
     } catch (error) {
@@ -67,9 +84,13 @@ export class UnitsService {
   /**
    * Applies a drag-and-drop order. The list must contain every unit of the
    * module exactly once, so a stale screen cannot silently drop a unit.
+   * Draft modules only; a published module's order is locked (Decision Log D28).
    */
   async reorder({ moduleId, unitIds }: ReorderUnitsDto) {
-    await this.requireModule(moduleId);
+    const module = await this.requireModule(moduleId);
+    if (module.status !== ModuleStatus.DRAFT) {
+      throw new ConflictException(UNIT_ERRORS.REORDER_NEEDS_DRAFT);
+    }
     const current = await this.unitsRepository.findByModule(moduleId);
     const currentIds = new Set(current.map((unit) => unit.id));
     const isSameSet =
@@ -83,9 +104,16 @@ export class UnitsService {
     return this.unitsRepository.findByModule(moduleId);
   }
 
+  /**
+   * Draft module: always allowed (D18). Published/Unpublished: D18 allows it only
+   * when no student has started the unit; until progress is tracked it is refused.
+   */
   async remove(id: string): Promise<void> {
-    // TODO(D18): once progress is tracked, reject deleting a unit a student has
-    // started inside a Published/Unpublished module.
+    const unit = await this.findOne(id);
+    // TODO(D18): once progress is tracked, allow it when no student has started the unit.
+    if (unit.module.status !== ModuleStatus.DRAFT) {
+      throw new ConflictException(UNIT_ERRORS.DELETE_NEEDS_DRAFT);
+    }
     try {
       await this.unitsRepository.softDelete(id);
     } catch (error) {

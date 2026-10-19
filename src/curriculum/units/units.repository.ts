@@ -12,7 +12,15 @@ export interface UnitFilter {
 }
 
 const UNIT_INCLUDE = {
-  module: { select: { id: true, code: true, titleEn: true, titleMy: true } },
+  module: {
+    select: {
+      id: true,
+      code: true,
+      titleEn: true,
+      titleMy: true,
+      status: true,
+    },
+  },
   _count: { select: { lessons: { where: NOT_DELETED } } },
 } as const satisfies Prisma.UnitInclude;
 

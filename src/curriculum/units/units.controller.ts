@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
@@ -53,6 +54,7 @@ export class UnitsController {
   @ApiBadRequestResponse({
     description: 'Unknown module, or unitIds is not exactly the module units',
   })
+  @ApiConflictResponse({ description: 'The module is not Draft (D28)' })
   reorder(@Body() dto: ReorderUnitsDto) {
     return this.unitsService.reorder(dto);
   }
@@ -80,6 +82,9 @@ export class UnitsController {
   @ApiOkResponse({ type: UnitResponseDto })
   @ApiBadRequestResponse({ description: 'Invalid body' })
   @ApiNotFoundResponse({ description: 'Unit does not exist' })
+  @ApiConflictResponse({
+    description: 'Moving between modules that are not both Draft (D28)',
+  })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUnitDto) {
     return this.unitsService.update(id, dto);
   }
@@ -89,6 +94,7 @@ export class UnitsController {
   @ApiOperation({ summary: 'Delete a unit' })
   @ApiNoContentResponse({ description: 'Unit deleted' })
   @ApiNotFoundResponse({ description: 'Unit does not exist' })
+  @ApiConflictResponse({ description: 'The unit’s module is not Draft (D18)' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.unitsService.remove(id);
   }
