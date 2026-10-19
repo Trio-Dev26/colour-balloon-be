@@ -18,15 +18,19 @@ export interface ModuleFilter {
 const MODULE_INCLUDE = {
   level: { select: TAXONOMY_SELECT },
   category: { select: TAXONOMY_SELECT },
-  _count: { select: { units: { where: NOT_DELETED } } },
+  units: {
+    where: NOT_DELETED,
+    select: { _count: { select: { lessons: { where: NOT_DELETED } } } },
+  },
 } as const satisfies Prisma.ModuleInclude;
 
 type ModuleRow = Prisma.ModuleGetPayload<{ include: typeof MODULE_INCLUDE }>;
 
-/** Exposes the unit count as a plain field instead of Prisma's `_count`. */
-const toModule = ({ _count, ...module }: ModuleRow) => ({
+/** Exposes plain unit and lesson counts (the D18 delete popup) instead of the per-unit rows. */
+const toModule = ({ units, ...module }: ModuleRow) => ({
   ...module,
-  unitCount: _count.units,
+  unitCount: units.length,
+  lessonCount: units.reduce((sum, unit) => sum + unit._count.lessons, 0),
 });
 
 /** All database access for modules. Throws Prisma errors untouched; the service interprets them. */

@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ModuleStatus } from '../../../../generated/prisma/enums';
 import { TaxonomyResponseDto } from '../../../catalog/dto/taxonomy-response.dto';
 
 const jsonObject = { type: 'object', additionalProperties: true } as const;
@@ -16,6 +17,12 @@ export class LessonModuleDto {
 
   @ApiProperty()
   titleMy: string;
+
+  @ApiProperty({
+    enum: ModuleStatus,
+    description: 'Move, reorder and delete are Draft-only (D18, D28)',
+  })
+  status: ModuleStatus;
 
   @ApiProperty({ type: TaxonomyResponseDto })
   level: TaxonomyResponseDto;
