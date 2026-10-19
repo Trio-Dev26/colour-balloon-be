@@ -28,6 +28,7 @@ const LESSON_INCLUDE = {
           code: true,
           titleEn: true,
           titleMy: true,
+          status: true,
           level: { select: TAXONOMY_SELECT },
           category: { select: TAXONOMY_SELECT },
         },

@@ -21,6 +21,12 @@ export class ModuleResponseDto {
   unitCount: number;
 
   @ApiProperty({
+    example: 12,
+    description: 'Number of lessons across its units (D18 delete popup)',
+  })
+  lessonCount: number;
+
+  @ApiProperty({
     type: String,
     nullable: true,
     description: 'Signed URL of the thumbnail image, valid for 1 hour',

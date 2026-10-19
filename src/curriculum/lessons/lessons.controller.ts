@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
@@ -56,6 +57,7 @@ export class LessonsController {
   @ApiBadRequestResponse({
     description: 'Unknown unit, or lessonIds is not exactly the unit lessons',
   })
+  @ApiConflictResponse({ description: 'The module is not Draft (D28)' })
   reorder(@Body() dto: ReorderLessonsDto) {
     return this.lessonsService.reorder(dto);
   }
@@ -81,11 +83,12 @@ export class LessonsController {
   @Patch(':id')
   @ApiOperation({
     summary:
-      'Update a lesson; a new unitId (same module) moves it to the end of that unit',
+      'Update a lesson; a new unitId moves it to the end of that unit (Draft modules only)',
   })
   @ApiOkResponse({ type: LessonResponseDto })
-  @ApiBadRequestResponse({
-    description: 'Invalid body, unknown unit, or a unit of another module',
+  @ApiBadRequestResponse({ description: 'Invalid body or unknown unit' })
+  @ApiConflictResponse({
+    description: 'Moving out of or into a module that is not Draft (D28)',
   })
   @ApiNotFoundResponse({ description: 'Lesson does not exist' })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLessonDto) {
@@ -96,6 +99,9 @@ export class LessonsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a lesson' })
   @ApiNoContentResponse({ description: 'Lesson deleted' })
+  @ApiConflictResponse({
+    description: 'The module is not Draft (D18, until progress is tracked)',
+  })
   @ApiNotFoundResponse({ description: 'Lesson does not exist' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.lessonsService.remove(id);

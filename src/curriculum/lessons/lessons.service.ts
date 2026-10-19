@@ -1,8 +1,10 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ModuleStatus } from '../../../generated/prisma/enums';
 import { isPrismaError } from '../../prisma/prisma-error.util';
 import { UnitsService } from '../units/units.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
@@ -41,15 +43,19 @@ export class LessonsService {
     return this.lessonsRepository.create(dto);
   }
 
-  /** A new unitId (same module only) moves the lesson to the end of that unit. */
+  /**
+   * A new unitId moves the lesson to the end of that unit, possibly in another
+   * module, only while both modules are Draft (Decision Log D28).
+   */
   async update(id: string, dto: UpdateLessonDto) {
-    if (dto.unitId) {
-      const [lesson, target] = await Promise.all([
-        this.findOne(id),
-        this.requireUnit(dto.unitId),
-      ]);
-      if (target.moduleId !== lesson.unit.module.id) {
-        throw new BadRequestException(LESSON_ERRORS.MOVE_ACROSS_MODULES);
+    const current = await this.findOne(id);
+    if (dto.unitId && dto.unitId !== current.unitId) {
+      const target = await this.requireUnit(dto.unitId);
+      if (
+        current.unit.module.status !== ModuleStatus.DRAFT ||
+        target.module.status !== ModuleStatus.DRAFT
+      ) {
+        throw new ConflictException(LESSON_ERRORS.MOVE_NEEDS_DRAFT);
       }
     }
     try {
@@ -63,9 +69,13 @@ export class LessonsService {
   /**
    * Applies a drag-and-drop order. The list must contain every lesson of the
    * unit exactly once, so a stale screen cannot silently drop a lesson.
+   * Draft modules only; a published module's order is locked (Decision Log D28).
    */
   async reorder({ unitId, lessonIds }: ReorderLessonsDto) {
-    await this.requireUnit(unitId);
+    const unit = await this.requireUnit(unitId);
+    if (unit.module.status !== ModuleStatus.DRAFT) {
+      throw new ConflictException(LESSON_ERRORS.REORDER_NEEDS_DRAFT);
+    }
     const current = await this.lessonsRepository.findByUnit(unitId);
     const currentIds = new Set(current.map((lesson) => lesson.id));
     const isSameSet =
@@ -79,9 +89,16 @@ export class LessonsService {
     return this.lessonsRepository.findByUnit(unitId);
   }
 
+  /**
+   * Draft module: always allowed (D18). Published/Unpublished: D18 allows it only
+   * when no student has started the lesson; until progress is tracked it is refused.
+   */
   async remove(id: string): Promise<void> {
-    // TODO(D18): once progress is tracked, reject deleting a lesson a student has
-    // started inside a Published/Unpublished module.
+    const lesson = await this.findOne(id);
+    // TODO(D18): once progress is tracked, allow it when no student has started the lesson.
+    if (lesson.unit.module.status !== ModuleStatus.DRAFT) {
+      throw new ConflictException(LESSON_ERRORS.DELETE_NEEDS_DRAFT);
+    }
     try {
       await this.lessonsRepository.softDelete(id);
     } catch (error) {
