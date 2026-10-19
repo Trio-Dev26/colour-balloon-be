@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ModuleStatus } from '../../../../generated/prisma/enums';
 
 const jsonObject = { type: 'object', additionalProperties: true } as const;
 
@@ -15,6 +16,9 @@ export class UnitModuleDto {
 
   @ApiProperty()
   titleMy: string;
+
+  @ApiProperty({ enum: ModuleStatus, enumName: 'ModuleStatus' })
+  status: ModuleStatus;
 }
 
 export class UnitResponseDto {
