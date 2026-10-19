@@ -17,8 +17,8 @@ Every Prisma CLI command needs `--config prisma7.config.ts`:
 
 ## Layout
 - `src/<domain>/`: `*.controller.ts` → `*.service.ts` → `*.repository.ts` (only repositories touch Prisma), `dto/`, `*.constants.ts`.
-- Domains: `auth/` (JWT strategy, roles/admin-only guards), `catalog/` (fixed levels + categories), `curriculum/modules`, `curriculum/units` (`curriculum/shared/codes.ts` builds codes).
+- Domains: `auth/` (JWT strategy, roles/admin-only guards), `catalog/` (fixed levels + categories), `curriculum/modules`, `curriculum/units`, `curriculum/lessons` (`curriculum/shared/codes.ts` builds codes).
 - `src/prisma/code-sequence.ts`: `nextCodeNumber(tx, scope)` gives never-reused code numbers; call it inside the insert's transaction.
 - `src/app.setup.ts`: global ValidationPipe (whitelist + transform), cookies, CORS; shared by main.ts and e2e tests.
-- Models: User, Role, Level, Category, Module (ModuleStatus enum), Unit, CodeSequence.
-- Soft delete (PRD FR-CUR-012): modules and units have `deletedAt`; every read adds `NOT_DELETED` (`curriculum/shared/soft-delete.ts`) and deletes only set it. Module titles are unique among live rows only (partial indexes, `partialIndexes` preview feature).
+- Models: User, Role, Level, Category, Module (ModuleStatus enum), Unit, Lesson, CodeSequence.
+- Soft delete (PRD FR-CUR-012): modules, units and lessons have `deletedAt` (deleting a parent also marks its children); every read adds `NOT_DELETED` (`curriculum/shared/soft-delete.ts`) and deletes only set it. Module titles are unique among live rows only (partial indexes, `partialIndexes` preview feature).

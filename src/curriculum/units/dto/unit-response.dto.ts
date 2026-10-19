@@ -51,6 +51,9 @@ export class UnitResponseDto {
   @ApiProperty({ type: UnitModuleDto })
   module: UnitModuleDto;
 
+  @ApiProperty({ example: 4, description: 'Number of live lessons' })
+  lessonCount: number;
+
   @ApiProperty()
   createdAt: Date;
 

@@ -91,9 +91,13 @@ export class ModulesService {
     ) {
       throw new ConflictException(MODULE_ERRORS.CANNOT_UNPUBLISH_DRAFT);
     }
-    // TODO(D17): also require at least one lesson once lessons exist.
-    if (status === ModuleStatus.PUBLISHED && current.unitCount === 0) {
-      throw new ConflictException(MODULE_ERRORS.PUBLISH_NEEDS_UNIT);
+    if (status === ModuleStatus.PUBLISHED) {
+      if (current.unitCount === 0) {
+        throw new ConflictException(MODULE_ERRORS.PUBLISH_NEEDS_UNIT);
+      }
+      if ((await this.modulesRepository.countUnitsWithLessons(id)) === 0) {
+        throw new ConflictException(MODULE_ERRORS.PUBLISH_NEEDS_LESSON);
+      }
     }
 
     return this.present(await this.modulesRepository.update(id, { status }));

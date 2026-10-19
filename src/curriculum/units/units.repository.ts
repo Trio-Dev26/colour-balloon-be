@@ -13,7 +13,16 @@ export interface UnitFilter {
 
 const UNIT_INCLUDE = {
   module: { select: { id: true, code: true, titleEn: true, titleMy: true } },
+  _count: { select: { lessons: { where: NOT_DELETED } } },
 } as const satisfies Prisma.UnitInclude;
+
+type UnitRow = Prisma.UnitGetPayload<{ include: typeof UNIT_INCLUDE }>;
+
+/** Exposes the lesson count as a plain field instead of Prisma's `_count`. */
+const toUnit = ({ _count, ...unit }: UnitRow) => ({
+  ...unit,
+  lessonCount: _count.lessons,
+});
 
 /** Module first, then the position inside it (the learner's unlock order). */
 const UNIT_ORDER: Prisma.UnitOrderByWithRelationInput[] = [
@@ -50,7 +59,7 @@ export class UnitsRepository {
 
   async findPage(filter: UnitFilter, skip: number, take: number) {
     const where = this.toWhere(filter);
-    const [items, total] = await this.prisma.$transaction([
+    const [rows, total] = await this.prisma.$transaction([
       this.prisma.unit.findMany({
         where,
         include: UNIT_INCLUDE,
@@ -60,22 +69,24 @@ export class UnitsRepository {
       }),
       this.prisma.unit.count({ where }),
     ]);
-    return { items, total };
+    return { items: rows.map(toUnit), total };
   }
 
-  findById(id: string) {
-    return this.prisma.unit.findUnique({
+  async findById(id: string) {
+    const row = await this.prisma.unit.findUnique({
       where: { id, ...NOT_DELETED },
       include: UNIT_INCLUDE,
     });
+    return row && toUnit(row);
   }
 
-  findByModule(moduleId: string) {
-    return this.prisma.unit.findMany({
+  async findByModule(moduleId: string) {
+    const rows = await this.prisma.unit.findMany({
       where: { moduleId, ...NOT_DELETED },
       include: UNIT_INCLUDE,
       orderBy: UNIT_ORDER,
     });
+    return rows.map(toUnit);
   }
 
   /**
@@ -88,10 +99,11 @@ export class UnitsRepository {
     return this.prisma.$transaction(async (tx) => {
       const code = formatCode(prefix, await nextCodeNumber(tx, prefix));
       const sequence = await nextSequence(tx, data.moduleId);
-      return tx.unit.create({
+      const row = await tx.unit.create({
         data: { ...data, code, sequence },
         include: UNIT_INCLUDE,
       });
+      return toUnit(row);
     });
   }
 
@@ -120,7 +132,7 @@ export class UnitsRepository {
         include: UNIT_INCLUDE,
       });
       if (newModuleId) await closeGap(tx, current.moduleId, current.sequence);
-      return updated;
+      return toUnit(updated);
     });
   }
 
@@ -137,14 +149,20 @@ export class UnitsRepository {
   }
 
   /**
-   * Hides the unit (PRD FR-CUR-012) and moves the units after it up one place,
-   * so the unlock order stays 1..n. Throws P2025 when it doesn't exist or is already deleted.
+   * Hides the unit and its lessons (PRD FR-CUR-012) and moves the units after it
+   * up one place, so the unlock order stays 1..n.
+   * Throws P2025 when it doesn't exist or is already deleted.
    */
   async softDelete(id: string): Promise<void> {
+    const deletedAt = new Date();
     await this.prisma.$transaction(async (tx) => {
       const { moduleId, sequence } = await tx.unit.update({
         where: { id, ...NOT_DELETED },
-        data: { deletedAt: new Date() },
+        data: { deletedAt },
+      });
+      await tx.lesson.updateMany({
+        where: { unitId: id, ...NOT_DELETED },
+        data: { deletedAt },
       });
       await closeGap(tx, moduleId, sequence);
     });
