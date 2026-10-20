@@ -1,4 +1,7 @@
 import { Module } from '@nestjs/common';
+import { LessonFilesController } from './lesson-files/lesson-files.controller';
+import { LessonFilesRepository } from './lesson-files/lesson-files.repository';
+import { LessonFilesService } from './lesson-files/lesson-files.service';
 import { LessonsController } from './lessons/lessons.controller';
 import { LessonsRepository } from './lessons/lessons.repository';
 import { LessonsService } from './lessons/lessons.service';
@@ -10,7 +13,12 @@ import { UnitsRepository } from './units/units.repository';
 import { UnitsService } from './units/units.service';
 
 @Module({
-  controllers: [ModulesController, UnitsController, LessonsController],
+  controllers: [
+    ModulesController,
+    UnitsController,
+    LessonsController,
+    LessonFilesController,
+  ],
   providers: [
     ModulesService,
     ModulesRepository,
@@ -18,6 +26,8 @@ import { UnitsService } from './units/units.service';
     UnitsRepository,
     LessonsService,
     LessonsRepository,
+    LessonFilesService,
+    LessonFilesRepository,
   ],
 })
 export class CurriculumModule {}
