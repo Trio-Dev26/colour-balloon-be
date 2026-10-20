@@ -21,6 +21,17 @@ enum ModuleStatus {
   @@map("module_status")
 }
 
+/// The four file groups of a lesson (PRD FR-FILE-001). Students only ever see
+/// STUDENT_* files and teachers only TEACHER_* files (FR-FILE-004).
+enum LessonFileGroup {
+  STUDENT_VIEW
+  STUDENT_DOWNLOAD
+  TEACHER_VIEW
+  TEACHER_DOWNLOAD
+
+  @@map("lesson_file_group")
+}
+
 model User {
   id       String @id @default(uuid(7)) @db.Uuid()
   userId   String @unique @default(dbgenerated("next_user_id()")) @map("user_id")
@@ -126,23 +137,48 @@ model Unit {
 }
 
 model Lesson {
-  id            String    @id @default(uuid(7)) @db.Uuid()
-  code          String    @unique @db.VarChar
+  id            String       @id @default(uuid(7)) @db.Uuid()
+  code          String       @unique @db.VarChar
   /// Display and unlock order inside the unit; independent of the code.
   sequence      Int
-  titleEn       String    @map("title_en") @db.VarChar
-  titleMy       String    @map("title_my") @db.VarChar
-  descriptionEn Json      @map("description_en") @db.JsonB
-  descriptionMy Json      @map("description_my") @db.JsonB
-  unit          Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
-  unitId        String    @map("unit_id") @db.Uuid()
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  titleEn       String       @map("title_en") @db.VarChar
+  titleMy       String       @map("title_my") @db.VarChar
+  descriptionEn Json         @map("description_en") @db.JsonB
+  descriptionMy Json         @map("description_my") @db.JsonB
+  unit          Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unitId        String       @map("unit_id") @db.Uuid()
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
   /// Set when an admin deletes the lesson, or its unit or module (PRD FR-CUR-012).
-  deletedAt     DateTime? @map("deleted_at")
+  deletedAt     DateTime?    @map("deleted_at")
+  files         LessonFile[]
 
   @@index([unitId, sequence])
   @@map("lessons")
+}
+
+/// A file in object storage, shown in a lesson in the admin's order (D12).
+model LessonFile {
+  id          String          @id @default(uuid(7)) @db.Uuid()
+  group       LessonFileGroup
+  /// Display order inside its group of the lesson.
+  sequence    Int
+  /// Object key in the private bucket; files are only served via signed URLs.
+  storageKey  String          @unique @map("storage_key") @db.VarChar
+  /// Original file name, shown to admins and used for downloads.
+  fileName    String          @map("file_name") @db.VarChar
+  /// Detected from the file's bytes, not the name.
+  contentType String          @map("content_type") @db.VarChar
+  sizeBytes   Int             @map("size_bytes")
+  captionEn   String?         @map("caption_en") @db.VarChar
+  captionMy   String?         @map("caption_my") @db.VarChar
+  lesson      Lesson          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId    String          @map("lesson_id") @db.Uuid()
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  @@index([lessonId, group, sequence])
+  @@map("lesson_files")
 }
 
 /// Last number handed out per code prefix ("FM", "FM01-U", ...), so codes of
