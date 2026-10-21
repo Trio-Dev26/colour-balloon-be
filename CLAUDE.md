@@ -37,6 +37,8 @@ All routes are admin-only (auth cookies). Errors are Nest's `{ statusCode, messa
 | `PATCH /admin/lessons/reorder` | `{ unitId, lessonIds }`, every lesson of the unit exactly once | 409 unless the module is Draft (D28) |
 | `DELETE /admin/lessons/:id` | | 204; 409 unless the module is Draft (D18, until progress is tracked) |
 
+Every lesson response also has `fileCounts: { student, teacher }`: its files whose `group` starts with `STUDENT` / `TEACHER` (the lesson tables' file columns).
+
 Use `lesson.unit.module.status !== 'DRAFT'` to disable Move / Reorder / Delete. Editing text and adding lessons work in any status.
 
 ### Lesson files (`src/curriculum/lesson-files`)
