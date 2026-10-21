@@ -54,6 +54,15 @@ export class LessonUnitDto {
   module: LessonModuleDto;
 }
 
+/** Files per audience (PRD FR-FILE-001): STUDENT_* and TEACHER_* groups. */
+export class LessonFileCountsDto {
+  @ApiProperty({ example: 3 })
+  student: number;
+
+  @ApiProperty({ example: 1 })
+  teacher: number;
+}
+
 export class LessonResponseDto {
   @ApiProperty({ format: 'uuid' })
   id: string;
@@ -87,6 +96,9 @@ export class LessonResponseDto {
 
   @ApiProperty({ type: LessonUnitDto })
   unit: LessonUnitDto;
+
+  @ApiProperty({ type: LessonFileCountsDto })
+  fileCounts: LessonFileCountsDto;
 
   @ApiProperty()
   createdAt: Date;

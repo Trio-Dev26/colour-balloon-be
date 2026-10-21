@@ -6,6 +6,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CODE_PREFIX, formatCode } from '../shared/codes';
 import { NOT_DELETED } from '../shared/soft-delete';
 
+/** LessonFileGroup values start with their audience (STUDENT_VIEW, TEACHER_DOWNLOAD, ...). */
+const STUDENT_PREFIX = 'STUDENT';
+const TEACHER_PREFIX = 'TEACHER';
+
 export interface LessonFilter {
   moduleId?: string;
   unitId?: string;
@@ -35,7 +39,22 @@ const LESSON_INCLUDE = {
       },
     },
   },
+  // Only the group, to count the files per audience (the lesson tables' file columns).
+  files: { select: { group: true } },
 } as const satisfies Prisma.LessonInclude;
+
+type LessonRow = Prisma.LessonGetPayload<{ include: typeof LESSON_INCLUDE }>;
+
+/** Exposes per-audience file counts instead of the file rows. */
+const toLesson = ({ files, ...lesson }: LessonRow) => ({
+  ...lesson,
+  fileCounts: {
+    student: files.filter(({ group }) => group.startsWith(STUDENT_PREFIX))
+      .length,
+    teacher: files.filter(({ group }) => group.startsWith(TEACHER_PREFIX))
+      .length,
+  },
+});
 
 /** Module, then unit, then the position inside the unit (the learner's unlock order). */
 const LESSON_ORDER: Prisma.LessonOrderByWithRelationInput[] = [
@@ -87,22 +106,24 @@ export class LessonsRepository {
       }),
       this.prisma.lesson.count({ where }),
     ]);
-    return { items, total };
+    return { items: items.map(toLesson), total };
   }
 
-  findById(id: string) {
-    return this.prisma.lesson.findUnique({
+  async findById(id: string) {
+    const lesson = await this.prisma.lesson.findUnique({
       where: { id, ...NOT_DELETED },
       include: LESSON_INCLUDE,
     });
+    return lesson && toLesson(lesson);
   }
 
-  findByUnit(unitId: string) {
-    return this.prisma.lesson.findMany({
+  async findByUnit(unitId: string) {
+    const lessons = await this.prisma.lesson.findMany({
       where: { unitId, ...NOT_DELETED },
       include: LESSON_INCLUDE,
       orderBy: LESSON_ORDER,
     });
+    return lessons.map(toLesson);
   }
 
   /** Inserts the lesson at the end of its unit with the next free system-wide code (e.g. L012). */
@@ -111,10 +132,11 @@ export class LessonsRepository {
     return this.prisma.$transaction(async (tx) => {
       const code = formatCode(prefix, await nextCodeNumber(tx, prefix));
       const sequence = await nextSequence(tx, data.unitId);
-      return tx.lesson.create({
+      const lesson = await tx.lesson.create({
         data: { ...data, code, sequence },
         include: LESSON_INCLUDE,
       });
+      return toLesson(lesson);
     });
   }
 
@@ -142,7 +164,7 @@ export class LessonsRepository {
         include: LESSON_INCLUDE,
       });
       if (newUnitId) await closeGap(tx, current.unitId, current.sequence);
-      return updated;
+      return toLesson(updated);
     });
   }
 
