@@ -91,7 +91,8 @@ export class ModulesRepository {
   }
 
   /**
-   * Hides the module, its units and their lessons (PRD FR-CUR-012, D18); nothing is erased.
+   * Hides the module and everything in it: units, lessons, questions and quizzes
+   * (PRD FR-CUR-012, D18); nothing is erased.
    * Throws P2025 when the module doesn't exist or is already deleted.
    */
   async softDelete(id: string): Promise<void> {
@@ -107,6 +108,14 @@ export class ModulesRepository {
       }),
       this.prisma.lesson.updateMany({
         where: { unit: { moduleId: id }, ...NOT_DELETED },
+        data: { deletedAt },
+      }),
+      this.prisma.question.updateMany({
+        where: { unit: { moduleId: id }, ...NOT_DELETED },
+        data: { deletedAt },
+      }),
+      this.prisma.quiz.updateMany({
+        where: { moduleId: id, ...NOT_DELETED },
         data: { deletedAt },
       }),
     ]);

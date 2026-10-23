@@ -94,11 +94,8 @@ export class LessonsService {
    * when no student has started the lesson; until progress is tracked it is refused.
    */
   async remove(id: string): Promise<void> {
-    const lesson = await this.findOne(id);
-    // TODO(D18): once progress is tracked, allow it when no student has started the lesson.
-    if (lesson.unit.module.status !== ModuleStatus.DRAFT) {
-      throw new ConflictException(LESSON_ERRORS.DELETE_NEEDS_DRAFT);
-    }
+    // TODO(D18): once progress is tracked, refuse it in a Published/Unpublished
+    // module when a student has started the lesson ("unpublish instead").
     try {
       await this.lessonsRepository.softDelete(id);
     } catch (error) {

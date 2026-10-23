@@ -17,14 +17,14 @@ Every Prisma CLI command needs `--config prisma7.config.ts`:
 
 ## Layout
 - `src/<domain>/`: `*.controller.ts` → `*.service.ts` → `*.repository.ts` (only repositories touch Prisma), `dto/`, `*.constants.ts`.
-- Domains: `auth/` (JWT strategy, roles/admin-only guards), `catalog/` (fixed levels + categories), `curriculum/modules`, `curriculum/units`, `curriculum/lessons`, `curriculum/lesson-files` (`curriculum/shared/codes.ts` builds codes).
+- Domains: `auth/` (JWT strategy, roles/admin-only guards), `catalog/` (fixed levels + categories), `curriculum/modules`, `curriculum/units`, `curriculum/lessons`, `curriculum/lesson-files`, `curriculum/questions`, `curriculum/quizzes` (`curriculum/shared/codes.ts` builds codes).
 - `src/prisma/code-sequence.ts`: `nextCodeNumber(tx, scope)` gives never-reused code numbers; call it inside the insert's transaction.
 - `src/app.setup.ts`: global ValidationPipe (whitelist + transform), cookies, CORS; shared by main.ts and e2e tests.
-- Models: User, Role, Level, Category, Module (ModuleStatus enum), Unit, Lesson, LessonFile (LessonFileGroup enum), CodeSequence.
+- Models: User, Role, Level, Category, Module (ModuleStatus enum), Unit, Lesson, LessonFile (LessonFileGroup enum), Question (QuestionType enum), QuestionMedia, Quiz (QuizType enum), QuizQuestion, CodeSequence.
 - Lesson files: presigned upload straight to storage; see "Frontend contract" below.
-- Soft delete (PRD FR-CUR-012): modules, units and lessons have `deletedAt` (deleting a parent also marks its children); every read adds `NOT_DELETED` (`curriculum/shared/soft-delete.ts`) and deletes only set it. Module titles are unique among live rows only (partial indexes, `partialIndexes` preview feature).
+- Soft delete (PRD FR-CUR-012): modules, units, lessons, questions and quizzes have `deletedAt` (deleting a parent also marks its children); every read adds `NOT_DELETED` (`curriculum/shared/soft-delete.ts`) and deletes only set it. Module titles are unique among live rows only (partial indexes, `partialIndexes` preview feature).
 
-## Frontend contract: lessons and lesson files
+## Frontend contract: lessons, lesson files, questions and quizzes
 All routes are admin-only (auth cookies). Errors are Nest's `{ statusCode, message, error }`; `message` is a string, or a string array for body validation errors.
 
 ### Lessons (`src/curriculum/lessons`)
@@ -35,11 +35,11 @@ All routes are admin-only (auth cookies). Errors are Nest's `{ statusCode, messa
 | `POST /admin/lessons` | `{ unitId, titleEn, titleMy, descriptionEn, descriptionMy }` (descriptions = rich-text JSON) | Gets the next code (`L001`…) and goes last in the unit |
 | `PATCH /admin/lessons/:id` | any create field | A new `unitId` moves it to the end of that unit: 409 unless both modules are Draft (D28) |
 | `PATCH /admin/lessons/reorder` | `{ unitId, lessonIds }`, every lesson of the unit exactly once | 409 unless the module is Draft (D28) |
-| `DELETE /admin/lessons/:id` | | 204; 409 unless the module is Draft (D18, until progress is tracked) |
+| `DELETE /admin/lessons/:id` | | 204 in any module status (D18; the "no student started it" check comes with progress tracking) |
 
 Every lesson response also has `fileCounts: { student, teacher }`: its files whose `group` starts with `STUDENT` / `TEACHER` (the lesson tables' file columns).
 
-Use `lesson.unit.module.status !== 'DRAFT'` to disable Move / Reorder / Delete. Editing text and adding lessons work in any status.
+Use `lesson.unit.module.status !== 'DRAFT'` to disable Move / Reorder. Editing, adding and deleting work in any status (units too).
 
 ### Lesson files (`src/curriculum/lesson-files`)
 Four groups per lesson (FR-FILE-001). Allowed types are checked against the file's real bytes (D19):
@@ -88,3 +88,54 @@ Max 200 MB per file. No Word or PowerPoint anywhere. The regexes live in `lesson
 - Tab badges: count the files whose `group` starts with `STUDENT` or `TEACHER`.
 
 **Storage CORS:** the browser PUTs to `STORAGE_ENDPOINT` directly. MinIO allows any origin by default. Production R2/Spaces need a bucket CORS rule allowing `PUT` and the `Content-Type` header from the dashboard's origin.
+
+### Questions (`src/curriculum/questions`)
+Single language. Every question belongs to one unit for good (D16, D28). Code `QN001`….
+
+| Route | Body / query | Notes |
+|---|---|---|
+| `GET /admin/questions` | `?moduleId&unitId&type&search&page&limit` | `{ items, total, page, limit }`; search matches the code and `promptText`; no `media` in list items |
+| `GET /admin/questions/:id` | | Adds `media: [{ id, contentType, url }]` (signed, 1 h): every image the prompt and answers use, looked up by id |
+| `POST /admin/questions/media` | multipart `file` (JPG/PNG ≤ 20 MB, checked by bytes) | 201 `{ id, contentType, sizeBytes, url }`. Upload while the form is open; the image belongs to no question until one is saved with its id |
+| `POST /admin/questions` | `{ unitId, type, prompt, promptMediaIds?, answers, explanation?, points }` | `prompt`/`explanation` = TipTap JSON; `points` 1–100; at most 5 prompt images |
+| `PATCH /admin/questions/:id` | any create field except `unitId` | A new `type` needs `answers` of that type. Images left out of the new prompt/answers are deleted |
+| `DELETE /admin/questions/:id` | | 204; **409** while it is in any quiz (D18), message lists the quiz codes |
+
+`answers` per `type` (Decision Log D22, D23). Every option, side and step needs `text` and/or `mediaId` (an id from `POST /admin/questions/media`):
+
+| `type` | `answers` | Rules |
+|---|---|---|
+| `MULTIPLE_CHOICE` | `{ options: [{ id?, text?, mediaId?, correct }] }` | 2–20 options, exactly one `correct: true` |
+| `TRUE_FALSE` | `{ correct: true \| false }` | |
+| `FILL_BLANK` | `{ blanks: [{ accepted: ["ကာ", …] }] }` | Type `___` in the prompt for each blank; one entry per blank, 1–20 accepted answers each. Text only |
+| `MATCHING` | `{ pairs: [{ id?, left: { text?, mediaId? }, right: { text?, mediaId? } }] }` | 2–20 pairs; students see the right side shuffled |
+| `SEQUENCE` | `{ steps: [{ id?, text?, mediaId? }] }` | 2–20 steps in the correct order |
+
+- Options, pairs and steps get an `id` when saved. Send it back when editing so it stays the same (attempts will refer to it).
+- A 400 lists every problem at once in `message` (e.g. `answers.options[1] needs text or an image`).
+- `promptText` is the prompt as plain text; use it for lists and search.
+- Response: `{ id, code, type, prompt, promptText, promptMediaIds, answers, explanation, points, unitId, unit { id, code, titles, module { id, code, titles, status } }, quizzes: [{ id, code }], media?, createdAt, updatedAt }`. Disable Delete while `quizzes` isn't empty.
+
+### Quizzes (`src/curriculum/quizzes`)
+Code `QZ001`…. Two types (D16, D20):
+
+| | `UNIT_QUIZ` | `CHAPTER_END_TEST` |
+|---|---|---|
+| Create with | `unitId` (module implied) | `moduleId`, no `unitId` |
+| How many | any per unit | one per module: a second returns **409** |
+| `required` | `true` (default) or `false`; Required ones block unit completion (D5) | always `true`; `false` returns 400 |
+| Questions from | its unit only | any unit of its module |
+
+| Route | Body / query | Notes |
+|---|---|---|
+| `GET /admin/quizzes` | `?moduleId&unitId&type&search&page&limit` | Unit quizzes first (by unit order), then the Chapter End Test |
+| `GET /admin/quizzes/:id` | | |
+| `POST /admin/quizzes` | `{ type, unitId?, moduleId?, required?, passPercent, titleEn, titleMy, descriptionEn?, descriptionMy? }` | `passPercent` 1–100; descriptions optional TipTap JSON. Starts with no questions |
+| `PATCH /admin/quizzes/:id` | titles, descriptions, `passPercent`, `required` | Type, module and unit never change (D28) |
+| `PUT /admin/quizzes/:id/questions` | `{ questionIds }`, the **whole ordered list**, each once | Add, remove and reorder all save this list. 400 for unknown questions or ones outside the unit/module |
+| `DELETE /admin/quizzes/:id` | | 204 in any status (D18; the "no attempts" check comes with attempts) |
+
+Response: `{ id, code, type, moduleId, module { id, code, titles, status }, unitId, unit | null, required, passPercent, titleEn, titleMy, descriptionEn, descriptionMy, questionCount, totalPoints, questions: [{ id, code, type, promptText, points, sequence }], createdAt, updatedAt }`.
+- `totalPoints` is always the sum of the question points (D21); show it live, never as an input. Pass = score ≥ `passPercent`% of it.
+- Attempts are not stored (D24: unit quiz unlimited, Chapter End Test 3 per 24 h).
+- Deleting a question or unit drops its questions from quizzes and totals. Moving a unit (Draft only) takes its unit quizzes along and removes its questions from the old module's Chapter End Test (D28).
