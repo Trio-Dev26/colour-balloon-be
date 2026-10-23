@@ -99,9 +99,6 @@ export class LessonsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a lesson' })
   @ApiNoContentResponse({ description: 'Lesson deleted' })
-  @ApiConflictResponse({
-    description: 'The module is not Draft (D18, until progress is tracked)',
-  })
   @ApiNotFoundResponse({ description: 'Lesson does not exist' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.lessonsService.remove(id);

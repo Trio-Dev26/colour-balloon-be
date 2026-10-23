@@ -1,3 +1,5 @@
+import { IMAGE_UPLOAD } from '../shared/image-upload';
+
 /** Error messages returned by the module routes. */
 export const MODULE_ERRORS = {
   NOT_FOUND: (id: string) => `Module ${id} not found`,
@@ -32,14 +34,7 @@ export const MODULE_FOREIGN_KEY_VIOLATIONS: Readonly<Record<string, string>> = {
 
 /** Thumbnail upload rules (PRD FR-CUR-002: JPG/PNG up to 20 MB). */
 export const MODULE_THUMBNAIL = {
-  FIELD: 'file',
-  MAX_BYTES: 20 * 1024 * 1024,
-  /** Checked against the file's real bytes, not the client-sent content type. */
-  MIME_TYPES: /^image\/(jpeg|png)$/,
-  EXTENSIONS: { 'image/jpeg': 'jpg', 'image/png': 'png' } as Record<
-    string,
-    string
-  >,
+  ...IMAGE_UPLOAD,
   /** Object key: one folder per module, a fresh name per upload (no stale caches). */
   key: (moduleId: string, uuid: string, extension: string) =>
     `modules/${moduleId}/thumbnail-${uuid}.${extension}`,

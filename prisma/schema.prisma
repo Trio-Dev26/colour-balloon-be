@@ -32,6 +32,25 @@ enum LessonFileGroup {
   @@map("lesson_file_group")
 }
 
+/// PRD FR-QB-003..007, Decision Log D22/D23. The answers JSON shape depends on it.
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  FILL_BLANK
+  MATCHING
+  SEQUENCE
+
+  @@map("question_type")
+}
+
+/// Decision Log D16: a unit quiz has a unit; the Chapter End Test covers the module.
+enum QuizType {
+  UNIT_QUIZ
+  CHAPTER_END_TEST
+
+  @@map("quiz_type")
+}
+
 model User {
   id       String @id @default(uuid(7)) @db.Uuid()
   userId   String @unique @default(dbgenerated("next_user_id()")) @map("user_id")
@@ -103,6 +122,7 @@ model Module {
   category          Category     @relation(fields: [categoryId], references: [id])
   categoryId        String       @map("category_id") @db.Uuid()
   units             Unit[]
+  quizzes           Quiz[]
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
   /// Set when an admin deletes the module (PRD FR-CUR-012: hidden, not erased).
@@ -116,21 +136,23 @@ model Module {
 }
 
 model Unit {
-  id            String    @id @default(uuid(7)) @db.Uuid()
-  code          String    @unique @db.VarChar
+  id            String     @id @default(uuid(7)) @db.Uuid()
+  code          String     @unique @db.VarChar
   /// Display and unlock order inside the module; independent of the code.
   sequence      Int
-  titleEn       String    @map("title_en") @db.VarChar
-  titleMy       String    @map("title_my") @db.VarChar
-  descriptionEn Json      @map("description_en") @db.JsonB
-  descriptionMy Json      @map("description_my") @db.JsonB
-  module        Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  moduleId      String    @map("module_id") @db.Uuid()
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  titleEn       String     @map("title_en") @db.VarChar
+  titleMy       String     @map("title_my") @db.VarChar
+  descriptionEn Json       @map("description_en") @db.JsonB
+  descriptionMy Json       @map("description_my") @db.JsonB
+  module        Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId      String     @map("module_id") @db.Uuid()
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
   lessons       Lesson[]
+  questions     Question[]
+  quizzes       Quiz[]
   /// Set when an admin deletes the unit, or its module (PRD FR-CUR-012).
-  deletedAt     DateTime? @map("deleted_at")
+  deletedAt     DateTime?  @map("deleted_at")
 
   @@index([moduleId, sequence])
   @@map("units")
@@ -188,4 +210,91 @@ model CodeSequence {
   lastValue Int    @map("last_value")
 
   @@map("code_sequences")
+}
+
+/// A question in the bank. It belongs to one unit for good (D16, D28).
+model Question {
+  id             String          @id @default(uuid(7)) @db.Uuid()
+  code           String          @unique @db.VarChar
+  type           QuestionType
+  /// Rich-text (TipTap JSON) prompt.
+  prompt         Json            @db.JsonB
+  /// Plain text of the prompt, for search, lists and counting ___ blanks.
+  promptText     String          @map("prompt_text") @db.VarChar
+  /// Images shown with the prompt (rows in question_media).
+  promptMediaIds String[]        @default([]) @map("prompt_media_ids") @db.Uuid
+  /// Correct answers; shape per type in src/curriculum/questions/question-answers.ts.
+  answers        Json            @db.JsonB
+  explanation    Json?           @db.JsonB
+  points         Int
+  unit           Unit            @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unitId         String          @map("unit_id") @db.Uuid()
+  media          QuestionMedia[]
+  quizzes        QuizQuestion[]
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  /// Set when an admin deletes the question, or its unit or module (PRD FR-CUR-012).
+  deletedAt      DateTime?       @map("deleted_at")
+
+  @@index([unitId])
+  @@map("questions")
+}
+
+/// An image uploaded for a question. questionId stays null until the question
+/// that uses it is saved; such rows are unused uploads.
+model QuestionMedia {
+  id          String    @id @default(uuid(7)) @db.Uuid()
+  question    Question? @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId  String?   @map("question_id") @db.Uuid()
+  storageKey  String    @unique @map("storage_key") @db.VarChar
+  /// Detected from the file's bytes.
+  contentType String    @map("content_type") @db.VarChar
+  sizeBytes   Int       @map("size_bytes")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([questionId])
+  @@map("question_media")
+}
+
+model Quiz {
+  id            String         @id @default(uuid(7)) @db.Uuid()
+  code          String         @unique @db.VarChar
+  type          QuizType
+  module        Module         @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId      String         @map("module_id") @db.Uuid()
+  /// Null for the Chapter End Test. A quiz's unit never changes (D28).
+  unit          Unit?          @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  unitId        String?        @map("unit_id") @db.Uuid()
+  /// Required quizzes block unit completion (D5); the Chapter End Test is always required.
+  required      Boolean        @default(true)
+  /// Pass when score / total points >= passPercent (D21).
+  passPercent   Int            @map("pass_percent")
+  titleEn       String         @map("title_en") @db.VarChar
+  titleMy       String         @map("title_my") @db.VarChar
+  descriptionEn Json?          @map("description_en") @db.JsonB
+  descriptionMy Json?          @map("description_my") @db.JsonB
+  questions     QuizQuestion[]
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  /// Set when an admin deletes the quiz, or its unit or module (PRD FR-CUR-012).
+  deletedAt     DateTime?      @map("deleted_at")
+
+  // One live Chapter End Test per module (D16).
+  @@unique([moduleId], map: "quizzes_one_cet_per_module", where: raw("type = 'CHAPTER_END_TEST' AND deleted_at IS NULL"))
+  @@index([moduleId])
+  @@index([unitId])
+  @@map("quizzes")
+}
+
+/// The questions of a quiz, in the admin's order. A question appears once per quiz.
+model QuizQuestion {
+  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId     String   @map("quiz_id") @db.Uuid()
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId String   @map("question_id") @db.Uuid()
+  sequence   Int
+
+  @@id([quizId, questionId])
+  @@index([questionId])
+  @@map("quiz_questions")
 }

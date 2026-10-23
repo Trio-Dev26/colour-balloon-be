@@ -104,16 +104,10 @@ export class UnitsService {
     return this.unitsRepository.findByModule(moduleId);
   }
 
-  /**
-   * Draft module: always allowed (D18). Published/Unpublished: D18 allows it only
-   * when no student has started the unit; until progress is tracked it is refused.
-   */
+  /** Hides the unit with its lessons, questions and unit quizzes (D18). */
   async remove(id: string): Promise<void> {
-    const unit = await this.findOne(id);
-    // TODO(D18): once progress is tracked, allow it when no student has started the unit.
-    if (unit.module.status !== ModuleStatus.DRAFT) {
-      throw new ConflictException(UNIT_ERRORS.DELETE_NEEDS_DRAFT);
-    }
+    // TODO(D18): once progress is tracked, refuse it in a Published/Unpublished
+    // module when a student has started the unit ("unpublish instead").
     try {
       await this.unitsRepository.softDelete(id);
     } catch (error) {

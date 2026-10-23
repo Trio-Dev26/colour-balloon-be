@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../generated/prisma/client';
+import { QuizType } from '../../../generated/prisma/enums';
 import { nextCodeNumber } from '../../prisma/code-sequence';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CODE_PREFIX, formatCode } from '../shared/codes';
@@ -139,7 +140,24 @@ export class UnitsRepository {
         data: { ...data, sequence },
         include: UNIT_INCLUDE,
       });
-      if (newModuleId) await closeGap(tx, current.moduleId, current.sequence);
+      if (newModuleId) {
+        await closeGap(tx, current.moduleId, current.sequence);
+        // D28: the unit's quizzes move with it, and its questions leave the old
+        // module's Chapter End Test.
+        await tx.quiz.updateMany({
+          where: { unitId: id },
+          data: { moduleId: newModuleId },
+        });
+        await tx.quizQuestion.deleteMany({
+          where: {
+            question: { unitId: id },
+            quiz: {
+              type: QuizType.CHAPTER_END_TEST,
+              moduleId: current.moduleId,
+            },
+          },
+        });
+      }
       return toUnit(updated);
     });
   }
@@ -157,7 +175,8 @@ export class UnitsRepository {
   }
 
   /**
-   * Hides the unit and its lessons (PRD FR-CUR-012) and moves the units after it
+   * Hides the unit with its lessons, questions and unit quizzes (PRD FR-CUR-012)
+   * and moves the units after it
    * up one place, so the unlock order stays 1..n.
    * Throws P2025 when it doesn't exist or is already deleted.
    */
@@ -168,10 +187,13 @@ export class UnitsRepository {
         where: { id, ...NOT_DELETED },
         data: { deletedAt },
       });
-      await tx.lesson.updateMany({
+      const children = {
         where: { unitId: id, ...NOT_DELETED },
         data: { deletedAt },
-      });
+      };
+      await tx.lesson.updateMany(children);
+      await tx.question.updateMany(children);
+      await tx.quiz.updateMany(children);
       await closeGap(tx, moduleId, sequence);
     });
   }
