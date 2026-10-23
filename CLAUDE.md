@@ -64,12 +64,13 @@ Max 200 MB per file. No Word or PowerPoint anywhere. The regexes live in `lesson
      - it needs `timeout: 0`, because a 200 MB upload outlives a 60 s timeout.
    - `onUploadProgress` drives the progress bar.
    - A 403 here means the URL expired (it must *start* within 15 min), the Content-Type differs, or the URL was altered.
-3. `POST /admin/lessons/:lessonId/files`, body `{ key, group, fileName, captionEn?, captionMy? }`.
+3. `POST /admin/lessons/:lessonId/files`, body `{ key, group, fileName, captionEn, captionMy }`. Both captions are required (non-blank, ≤ 500 chars): learners and teachers see them next to the file.
    - Returns **201** with a `LessonFile`.
    - The API re-checks the stored object: the key belongs to this lesson, it was uploaded, it isn't empty, it's ≤ 200 MB, and its real type is allowed. On failure it deletes the object and returns 400 with the reason as `message` (show it as "Failed: …").
    - Returns 409 if the key is already registered.
 
 **`LessonFile`** = `{ id, group, sequence, fileName, contentType, sizeBytes, captionEn, captionMy, url, lessonId, createdAt, updatedAt }`.
+- `captionEn` / `captionMy` are always set on new files; files registered before captions became required may still have `null` (show them as missing).
 - `sequence` is the position inside its group, starting at 1.
 - `contentType` is detected from the file's bytes. Pick the viewer from it: `video/*` → `<video>`, `audio/*` → `<audio>`, `image/*` → `<img>`, `application/pdf` → iframe or new tab.
 - `url` is a signed preview link valid for **1 hour**. Don't store it; refetch the list.
@@ -80,7 +81,7 @@ Max 200 MB per file. No Word or PowerPoint anywhere. The regexes live in `lesson
 |---|---|---|
 | `GET` | | All files, by group (STUDENT_VIEW, STUDENT_DOWNLOAD, TEACHER_VIEW, TEACHER_DOWNLOAD), then `sequence`; split them by `group` on the client |
 | `PATCH /reorder` | `{ group, fileIds }`, every file of that group exactly once | 200 with the group's files in the new order; 400 on a mismatch |
-| `PATCH /:fileId` | `{ captionEn?, captionMy? }`; `null` clears one | 200 `LessonFile` |
+| `PATCH /:fileId` | `{ captionEn, captionMy }`, both required; captions can't be cleared | 200 `LessonFile` |
 | `DELETE /:fileId` | | 204; removes the row and the stored object |
 
 - Unknown lesson or file returns 404.

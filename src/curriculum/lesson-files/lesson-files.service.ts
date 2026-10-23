@@ -84,8 +84,8 @@ export class LessonFilesService {
         fileName: dto.fileName,
         contentType,
         sizeBytes: stored.size,
-        captionEn: dto.captionEn ?? null,
-        captionMy: dto.captionMy ?? null,
+        captionEn: dto.captionEn,
+        captionMy: dto.captionMy,
       });
       return this.present(file);
     } catch (error) {
