@@ -8,6 +8,8 @@ const DOWNLOADABLE = /^(application\/pdf|audio\/.+|image\/(jpeg|png|webp))$/;
 export const LESSON_FILE = {
   /** PRD FR-FILE-002 / BR-16. */
   MAX_BYTES: 200 * 1024 * 1024,
+  /** Per caption, English and Myanmar alike. */
+  CAPTION_MAX: 500,
   /** How long a signed upload URL stays valid; the PUT only has to start in time. */
   UPLOAD_URL_TTL_SECONDS: 15 * 60,
   /** Enough leading bytes for `file-type` to recognise every allowed format. */

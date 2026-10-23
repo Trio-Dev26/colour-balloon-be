@@ -1,6 +1,7 @@
-import { ApiProperty, ApiPropertyOptional, PickType } from '@nestjs/swagger';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
-import { Trim } from '../../../common/decorators/trim.decorator';
+import { ApiProperty, PickType } from '@nestjs/swagger';
+import { IsString } from 'class-validator';
+import { RequiredText } from '../../shared/fields';
+import { LESSON_FILE } from '../lesson-file.constants';
 import { RequestUploadDto } from './request-upload.dto';
 
 /** Registers a finished upload as a lesson file, at the end of its group. */
@@ -12,22 +13,15 @@ export class RegisterFileDto extends PickType(RequestUploadDto, [
   @IsString()
   key: string;
 
-  @ApiPropertyOptional({ maxLength: 500, nullable: true })
-  @IsOptional()
-  @Trim()
-  @IsString()
-  @MaxLength(500)
-  captionEn?: string | null;
+  /** Learners and teachers see the captions next to the file, so both are required. */
+  @RequiredText(LESSON_FILE.CAPTION_MAX, 'Listen and repeat')
+  captionEn: string;
 
-  @ApiPropertyOptional({ maxLength: 500, nullable: true })
-  @IsOptional()
-  @Trim()
-  @IsString()
-  @MaxLength(500)
-  captionMy?: string | null;
+  @RequiredText(LESSON_FILE.CAPTION_MAX, 'နားထောင်ပြီး လိုက်ဆိုပါ')
+  captionMy: string;
 }
 
-/** Captions only; send null to clear one. */
+/** Both captions; neither can be cleared. */
 export class UpdateFileDto extends PickType(RegisterFileDto, [
   'captionEn',
   'captionMy',
