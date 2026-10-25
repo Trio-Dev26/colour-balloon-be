@@ -97,6 +97,14 @@ export class QuizResponseDto {
   @ApiProperty({ example: 70 })
   passPercent: number;
 
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    example: 3,
+    description: 'Attempts before the 24-hour lock; null = unlimited (D24)',
+  })
+  maxAttempts: number | null;
+
   @ApiProperty()
   titleEn: string;
 

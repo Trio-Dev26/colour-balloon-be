@@ -131,12 +131,12 @@ Code `QZ001`…. Two types (D16, D20):
 |---|---|---|
 | `GET /admin/quizzes` | `?moduleId&unitId&type&search&page&limit` | Unit quizzes first (by unit order), then the Chapter End Test |
 | `GET /admin/quizzes/:id` | | |
-| `POST /admin/quizzes` | `{ type, unitId?, moduleId?, required?, passPercent, titleEn, titleMy, descriptionEn?, descriptionMy? }` | `passPercent` 1–100; descriptions optional TipTap JSON. Starts with no questions |
-| `PATCH /admin/quizzes/:id` | titles, descriptions, `passPercent`, `required` | Type, module and unit never change (D28) |
+| `POST /admin/quizzes` | `{ type, unitId?, moduleId?, required?, passPercent, maxAttempts?, titleEn, titleMy, descriptionEn?, descriptionMy? }` | `passPercent` 1–100; `maxAttempts` 1–100 or `null` (unlimited), left out = D24 default (unit quiz unlimited, Chapter End Test 3); descriptions optional TipTap JSON. Starts with no questions |
+| `PATCH /admin/quizzes/:id` | titles, descriptions, `passPercent`, `maxAttempts`, `required` | Type, module and unit never change (D28) |
 | `PUT /admin/quizzes/:id/questions` | `{ questionIds }`, the **whole ordered list**, each once | Add, remove and reorder all save this list. 400 for unknown questions or ones outside the unit/module |
 | `DELETE /admin/quizzes/:id` | | 204 in any status (D18; the "no attempts" check comes with attempts) |
 
-Response: `{ id, code, type, moduleId, module { id, code, titles, status }, unitId, unit | null, required, passPercent, titleEn, titleMy, descriptionEn, descriptionMy, questionCount, totalPoints, questions: [{ id, code, type, promptText, points, sequence }], createdAt, updatedAt }`.
+Response: `{ id, code, type, moduleId, module { id, code, titles, status }, unitId, unit | null, required, passPercent, maxAttempts, titleEn, titleMy, descriptionEn, descriptionMy, questionCount, totalPoints, questions: [{ id, code, type, promptText, points, sequence }], createdAt, updatedAt }`.
 - `totalPoints` is always the sum of the question points (D21); show it live, never as an input. Pass = score ≥ `passPercent`% of it.
-- Attempts are not stored (D24: unit quiz unlimited, Chapter End Test 3 per 24 h).
+- `maxAttempts` is the attempts before the 24-hour lock (D24); `null` = unlimited. Attempts themselves are not stored yet.
 - Deleting a question or unit drops its questions from quizzes and totals. Moving a unit (Draft only) takes its unit quizzes along and removes its questions from the old module's Chapter End Test (D28).

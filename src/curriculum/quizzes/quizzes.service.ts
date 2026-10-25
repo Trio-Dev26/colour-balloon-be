@@ -17,7 +17,11 @@ import { CreateQuizDto } from './dto/create-quiz.dto';
 import { ListQuizzesQueryDto } from './dto/list-quizzes-query.dto';
 import { SetQuizQuestionsDto } from './dto/set-quiz-questions.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
-import { QUIZ_ERRORS, QUIZ_UNIQUE_VIOLATIONS } from './quiz.constants';
+import {
+  DEFAULT_MAX_ATTEMPTS,
+  QUIZ_ERRORS,
+  QUIZ_UNIQUE_VIOLATIONS,
+} from './quiz.constants';
 import { QuizzesRepository } from './quizzes.repository';
 
 /** Rich-text JSON from a DTO: null clears a nullable column. */
@@ -66,6 +70,10 @@ export class QuizzesService {
         unitId,
         required: isChapterEndTest || (dto.required ?? true),
         passPercent: dto.passPercent,
+        maxAttempts:
+          dto.maxAttempts === undefined
+            ? DEFAULT_MAX_ATTEMPTS[dto.type]
+            : dto.maxAttempts,
         titleEn: dto.titleEn,
         titleMy: dto.titleMy,
         descriptionEn: jsonOrNull(dto.descriptionEn),
