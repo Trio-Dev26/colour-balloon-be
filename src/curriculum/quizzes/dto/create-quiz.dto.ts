@@ -12,6 +12,7 @@ import {
 import type { Prisma } from '../../../../generated/prisma/client';
 import { QuizType } from '../../../../generated/prisma/enums';
 import { RequiredText } from '../../shared/fields';
+import { MAX_QUIZ_ATTEMPTS } from '../quiz.constants';
 
 const optionalRichText = {
   type: 'object',
@@ -67,6 +68,21 @@ export class CreateQuizDto {
   @Min(1)
   @Max(100)
   passPercent: number;
+
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    example: 3,
+    minimum: 1,
+    maximum: MAX_QUIZ_ATTEMPTS,
+    description:
+      'Attempts before the 24-hour lock; null = unlimited. Left out on create: unit quiz unlimited, Chapter End Test 3 (D24)',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(MAX_QUIZ_ATTEMPTS)
+  maxAttempts?: number | null;
 
   @RequiredText(200, 'Consonants check')
   titleEn: string;

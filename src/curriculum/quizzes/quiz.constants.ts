@@ -1,3 +1,5 @@
+import type { QuizType } from '../../../generated/prisma/enums';
+
 /** Error messages returned by the quiz routes. */
 export const QUIZ_ERRORS = {
   NOT_FOUND: (id: string) => `Quiz ${id} not found`,
@@ -25,3 +27,12 @@ export const QUIZ_UNIQUE_VIOLATIONS: Readonly<Record<string, string>> = {
 };
 
 export const MAX_QUIZ_QUESTIONS = 200;
+
+/** Upper bound an admin can set for `maxAttempts`. */
+export const MAX_QUIZ_ATTEMPTS = 100;
+
+/** D24 defaults when `maxAttempts` is left out on create; null = unlimited. */
+export const DEFAULT_MAX_ATTEMPTS: Readonly<Record<QuizType, number | null>> = {
+  UNIT_QUIZ: null,
+  CHAPTER_END_TEST: 3,
+};

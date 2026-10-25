@@ -269,6 +269,8 @@ model Quiz {
   required      Boolean        @default(true)
   /// Pass when score / total points >= passPercent (D21).
   passPercent   Int            @map("pass_percent")
+  /// Attempts before the 24-hour lock; null = unlimited (D24 defaults: unit quiz unlimited, Chapter End Test 3).
+  maxAttempts   Int?           @map("max_attempts")
   titleEn       String         @map("title_en") @db.VarChar
   titleMy       String         @map("title_my") @db.VarChar
   descriptionEn Json?          @map("description_en") @db.JsonB
