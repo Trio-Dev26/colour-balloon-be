@@ -136,7 +136,7 @@ Code `QZ001`…. Two types (D16, D20):
 | `PUT /admin/quizzes/:id/questions` | `{ questionIds }`, the **whole ordered list**, each once | Add, remove and reorder all save this list. 400 for unknown questions or ones outside the unit/module |
 | `DELETE /admin/quizzes/:id` | | 204 in any status (D18; the "no attempts" check comes with attempts) |
 
-Response: `{ id, code, type, moduleId, module { id, code, titles, status }, unitId, unit | null, required, passPercent, maxAttempts, titleEn, titleMy, descriptionEn, descriptionMy, questionCount, totalPoints, questions: [{ id, code, type, promptText, points, sequence }], createdAt, updatedAt }`.
+Response: `{ id, code, type, moduleId, module { id, code, titles, status }, unitId, unit | null, required, passPercent, maxAttempts, titleEn, titleMy, descriptionEn, descriptionMy, questionCount, totalPoints, questions: [{ id, code, type, promptText, points, sequence, unit { id, code } }], createdAt, updatedAt }`.
 - `totalPoints` is always the sum of the question points (D21); show it live, never as an input. Pass = score ≥ `passPercent`% of it.
 - `maxAttempts` is the attempts before the 24-hour lock (D24); `null` = unlimited. Attempts themselves are not stored yet.
 - Deleting a question or unit drops its questions from quizzes and totals. Moving a unit (Draft only) takes its unit quizzes along and removes its questions from the old module's Chapter End Test (D28).

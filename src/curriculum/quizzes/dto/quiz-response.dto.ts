@@ -42,6 +42,14 @@ export class QuizUnitDto {
   titleMy: string;
 }
 
+export class QuizQuestionUnitDto {
+  @ApiProperty({ format: 'uuid' })
+  id: string;
+
+  @ApiProperty({ example: 'U001' })
+  code: string;
+}
+
 export class QuizQuestionDto {
   @ApiProperty({ format: 'uuid' })
   id: string;
@@ -60,6 +68,9 @@ export class QuizQuestionDto {
 
   @ApiProperty({ example: 1, description: 'Position in the quiz' })
   sequence: number;
+
+  @ApiProperty({ type: QuizQuestionUnitDto })
+  unit: QuizQuestionUnitDto;
 }
 
 export class QuizResponseDto {
