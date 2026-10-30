@@ -37,6 +37,8 @@ const QUIZ_INCLUDE = {
           type: true,
           promptText: true,
           points: true,
+          // The Chapter End Test mixes units; the dashboard shows each question's unit.
+          unit: { select: { id: true, code: true } },
         },
       },
     },
