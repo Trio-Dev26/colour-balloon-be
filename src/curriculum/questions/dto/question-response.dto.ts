@@ -74,26 +74,39 @@ export class QuestionResponseDto {
   @ApiProperty({ enum: QuestionType, enumName: 'QuestionType' })
   type: QuestionType;
 
-  @ApiProperty(jsonObject)
-  prompt: object;
+  @ApiProperty({ ...jsonObject, description: 'Myanmar prompt (required; Q24)' })
+  promptMy: object;
 
   @ApiProperty({
-    example: 'Which letter is “ka”?',
-    description: 'Plain text of the prompt',
+    example: '“က” အက္ခရာ ဘယ်ဟာလဲ။',
+    description: 'Plain text of the Myanmar prompt, for lists and search',
   })
-  promptText: string;
+  promptTextMy: string;
+
+  @ApiProperty({
+    ...jsonObject,
+    nullable: true,
+    description: 'Optional English translation; always null for FILL_BLANK',
+  })
+  promptEn: object | null;
+
+  @ApiProperty({ nullable: true, description: 'Plain text of promptEn' })
+  promptTextEn: string | null;
 
   @ApiProperty({ type: [String], format: 'uuid' })
   promptMediaIds: string[];
 
   @ApiProperty({
     ...jsonObject,
-    description: 'See answers on CreateQuestionDto',
+    description: 'See answers on CreateQuestionDto; shared by both languages',
   })
   answers: object;
 
   @ApiProperty({ ...jsonObject, nullable: true })
-  explanation: object | null;
+  explanationMy: object | null;
+
+  @ApiProperty({ ...jsonObject, nullable: true })
+  explanationEn: object | null;
 
   @ApiProperty({ example: 1 })
   points: number;

@@ -60,7 +60,10 @@ export class QuizQuestionDto {
   @ApiProperty({ enum: QuestionType, enumName: 'QuestionType' })
   type: QuestionType;
 
-  @ApiProperty({ example: 'Which letter is “ka”?' })
+  @ApiProperty({
+    example: '“က” အက္ခရာ ဘယ်ဟာလဲ။',
+    description: 'Plain text of the question’s Myanmar prompt (Q24)',
+  })
   promptText: string;
 
   @ApiProperty({ example: 1 })

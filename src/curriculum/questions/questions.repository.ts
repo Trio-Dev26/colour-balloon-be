@@ -197,7 +197,8 @@ export class QuestionsRepository {
       ...(search && {
         OR: [
           { code: { contains: search, mode: 'insensitive' } },
-          { promptText: { contains: search, mode: 'insensitive' } },
+          { promptTextEn: { contains: search, mode: 'insensitive' } },
+          { promptTextMy: { contains: search, mode: 'insensitive' } },
         ],
       }),
     };

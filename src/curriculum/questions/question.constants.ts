@@ -4,7 +4,10 @@ import { IMAGE_UPLOAD } from '../shared/image-upload';
 export const QUESTION_ERRORS = {
   NOT_FOUND: (id: string) => `Question ${id} not found`,
   UNIT_NOT_FOUND: 'Unit does not exist',
-  PROMPT_EMPTY: 'prompt must contain some text',
+  PROMPT_EMPTY: 'promptMy must contain some text',
+  // Q24: a fill-in-the-blank question is Myanmar only (its blanks are Myanmar words).
+  NO_ENGLISH_FOR_FILL_BLANK:
+    'A fill-in-the-blank question has no English version; leave promptEn and explanationEn empty',
   MEDIA_NOT_FOUND:
     'An image id is unknown or belongs to another question; upload the image again',
   // Decision Log D18.
