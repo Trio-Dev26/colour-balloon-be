@@ -91,14 +91,14 @@ Max 200 MB per file. No Word or PowerPoint anywhere. The regexes live in `lesson
 **Storage CORS:** the browser PUTs to `STORAGE_ENDPOINT` directly. MinIO allows any origin by default. Production R2/Spaces need a bucket CORS rule allowing `PUT` and the `Content-Type` header from the dashboard's origin.
 
 ### Questions (`src/curriculum/questions`)
-Single language. Every question belongs to one unit for good (D16, D28). Code `QN001`….
+Myanmar-first (Q24): the Myanmar prompt `promptMy` is required; `promptEn` is an optional English translation (learners without it see Myanmar). FILL_BLANK is Myanmar only: any English text returns 400 and changing a question to FILL_BLANK clears stored English. Explanations `explanationMy` / `explanationEn` are optional. Answers are shared by both languages. Every question belongs to one unit for good (D16, D28). Code `QN001`….
 
 | Route | Body / query | Notes |
 |---|---|---|
-| `GET /admin/questions` | `?moduleId&unitId&type&search&page&limit` | `{ items, total, page, limit }`; search matches the code and `promptText`; no `media` in list items |
+| `GET /admin/questions` | `?moduleId&unitId&type&search&page&limit` | `{ items, total, page, limit }`; search matches the code, `promptTextMy` and `promptTextEn`; no `media` in list items |
 | `GET /admin/questions/:id` | | Adds `media: [{ id, contentType, url }]` (signed, 1 h): every image the prompt and answers use, looked up by id |
 | `POST /admin/questions/media` | multipart `file` (JPG/PNG ≤ 20 MB, checked by bytes) | 201 `{ id, contentType, sizeBytes, url }`. Upload while the form is open; the image belongs to no question until one is saved with its id |
-| `POST /admin/questions` | `{ unitId, type, prompt, promptMediaIds?, answers, explanation?, points }` | `prompt`/`explanation` = TipTap JSON; `points` 1–100; at most 5 prompt images |
+| `POST /admin/questions` | `{ unitId, type, promptMy, promptEn?, promptMediaIds?, answers, explanationMy?, explanationEn?, points }` | All four = TipTap JSON; `null` or no text clears `promptEn`; `null` clears an explanation; FILL_BLANK blanks are counted in `promptMy`; `points` 1–100; at most 5 prompt images |
 | `PATCH /admin/questions/:id` | any create field except `unitId` | A new `type` needs `answers` of that type. Images left out of the new prompt/answers are deleted |
 | `DELETE /admin/questions/:id` | | 204; **409** while it is in any quiz (D18), message lists the quiz codes |
 
@@ -114,8 +114,8 @@ Single language. Every question belongs to one unit for good (D16, D28). Code `Q
 
 - Options, pairs and steps get an `id` when saved. Send it back when editing so it stays the same (attempts will refer to it).
 - A 400 lists every problem at once in `message` (e.g. `answers.options[1] needs text or an image`).
-- `promptText` is the prompt as plain text; use it for lists and search.
-- Response: `{ id, code, type, prompt, promptText, promptMediaIds, answers, explanation, points, unitId, unit { id, code, titles, module { id, code, titles, status } }, quizzes: [{ id, code }], media?, createdAt, updatedAt }`. Disable Delete while `quizzes` isn't empty.
+- `promptTextMy` / `promptTextEn` are the prompts as plain text; use them for lists and search.
+- Response: `{ id, code, type, promptMy, promptTextMy, promptEn, promptTextEn, promptMediaIds, answers, explanationMy, explanationEn, points, unitId, unit { id, code, titles, module { id, code, titles, status } }, quizzes: [{ id, code }], media?, createdAt, updatedAt }`. Disable Delete while `quizzes` isn't empty.
 
 ### Quizzes (`src/curriculum/quizzes`)
 Code `QZ001`…. Two types (D16, D20):
@@ -136,7 +136,7 @@ Code `QZ001`…. Two types (D16, D20):
 | `PUT /admin/quizzes/:id/questions` | `{ questionIds }`, the **whole ordered list**, each once | Add, remove and reorder all save this list. 400 for unknown questions or ones outside the unit/module |
 | `DELETE /admin/quizzes/:id` | | 204 in any status (D18; the "no attempts" check comes with attempts) |
 
-Response: `{ id, code, type, moduleId, module { id, code, titles, status }, unitId, unit | null, required, passPercent, maxAttempts, titleEn, titleMy, descriptionEn, descriptionMy, questionCount, totalPoints, questions: [{ id, code, type, promptText, points, sequence, unit { id, code } }], createdAt, updatedAt }`.
+Response: `{ id, code, type, moduleId, module { id, code, titles, status }, unitId, unit | null, required, passPercent, maxAttempts, titleEn, titleMy, descriptionEn, descriptionMy, questionCount, totalPoints, questions: [{ id, code, type, promptText (the Myanmar prompt), points, sequence, unit { id, code } }], createdAt, updatedAt }`.
 - `totalPoints` is always the sum of the question points (D21); show it live, never as an input. Pass = score ≥ `passPercent`% of it.
 - `maxAttempts` is the attempts before the 24-hour lock (D24); `null` = unlimited. Attempts themselves are not stored yet.
 - Deleting a question or unit drops its questions from quizzes and totals. Moving a unit (Draft only) takes its unit quizzes along and removes its questions from the old module's Chapter End Test (D28).

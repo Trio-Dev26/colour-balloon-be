@@ -217,15 +217,22 @@ model Question {
   id             String          @id @default(uuid(7)) @db.Uuid()
   code           String          @unique @db.VarChar
   type           QuestionType
-  /// Rich-text (TipTap JSON) prompt.
-  prompt         Json            @db.JsonB
-  /// Plain text of the prompt, for search, lists and counting ___ blanks.
-  promptText     String          @map("prompt_text") @db.VarChar
+  /// Q24: questions are Myanmar-first (the platform teaches Myanmar literacy). The Myanmar prompt is required;
+  /// the English one is an optional translation, and FILL_BLANK has none (its blanks are Myanmar words).
+  /// Rich-text (TipTap JSON) Myanmar prompt.
+  promptMy       Json            @map("prompt_my") @db.JsonB
+  /// Plain text of the Myanmar prompt, for search, lists and counting ___ blanks.
+  promptTextMy   String          @map("prompt_text_my") @db.VarChar
+  /// Optional English translation of the prompt (never for FILL_BLANK).
+  promptEn       Json?           @map("prompt_en") @db.JsonB
+  promptTextEn   String?         @map("prompt_text_en") @db.VarChar
   /// Images shown with the prompt (rows in question_media).
   promptMediaIds String[]        @default([]) @map("prompt_media_ids") @db.Uuid
-  /// Correct answers; shape per type in src/curriculum/questions/question-answers.ts.
+  /// Correct answers, shared by both languages; shape per type in src/curriculum/questions/question-answers.ts.
   answers        Json            @db.JsonB
-  explanation    Json?           @db.JsonB
+  /// Optional explanations shown after answering (English never for FILL_BLANK).
+  explanationMy  Json?           @map("explanation_my") @db.JsonB
+  explanationEn  Json?           @map("explanation_en") @db.JsonB
   points         Int
   unit           Unit            @relation(fields: [unitId], references: [id], onDelete: Cascade)
   unitId         String          @map("unit_id") @db.Uuid()

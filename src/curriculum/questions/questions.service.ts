@@ -66,7 +66,7 @@ export class QuestionsService {
 
     const content = this.prepareContent(
       dto.type,
-      dto.prompt,
+      dto.promptMy,
       dto.answers,
       dto.promptMediaIds ?? [],
     );
@@ -76,8 +76,9 @@ export class QuestionsService {
           unitId: dto.unitId,
           type: dto.type,
           points: dto.points,
-          explanation: jsonOrNull(dto.explanation),
+          explanationMy: jsonOrNull(dto.explanationMy),
           ...content.data,
+          ...this.prepareEnglish(dto.type, dto),
         },
         content.mediaIds,
       );
@@ -88,20 +89,21 @@ export class QuestionsService {
   }
 
   /**
-   * Updates any field but the unit. Changing the type, prompt, answers or prompt
+   * Updates any field but the unit. Changing the type, Myanmar prompt, answers or prompt
    * images re-checks them together, using the stored values for what wasn't sent.
    */
   async update(id: string, dto: UpdateQuestionDto) {
     const current = await this.getOrThrow(id);
     const touchesContent =
       dto.type !== undefined ||
-      dto.prompt !== undefined ||
+      dto.promptMy !== undefined ||
       dto.answers !== undefined ||
       dto.promptMediaIds !== undefined;
+    const type = dto.type ?? current.type;
     const content = touchesContent
       ? this.prepareContent(
-          dto.type ?? current.type,
-          dto.prompt ?? (current.prompt as Prisma.InputJsonObject),
+          type,
+          dto.promptMy ?? (current.promptMy as Prisma.InputJsonObject),
           dto.answers ?? (current.answers as Record<string, unknown>),
           dto.promptMediaIds ?? current.promptMediaIds,
         )
@@ -113,8 +115,9 @@ export class QuestionsService {
         {
           type: dto.type,
           points: dto.points,
-          explanation: jsonOrNull(dto.explanation),
+          explanationMy: jsonOrNull(dto.explanationMy),
           ...content?.data,
+          ...this.prepareEnglish(type, dto),
         },
         content?.mediaIds,
       );
@@ -170,31 +173,65 @@ export class QuestionsService {
     }
   }
 
-  /** Checks the prompt and answers for the type; returns the columns to save and every image id used. */
+  /** Checks the Myanmar prompt and answers for the type; returns the columns to save and every image id used. */
   private prepareContent(
     type: QuestionType,
-    prompt: Prisma.InputJsonObject,
+    promptMy: Prisma.InputJsonObject,
     rawAnswers: Record<string, unknown>,
     promptMediaIds: string[],
   ) {
-    const promptText = plainText(prompt);
+    const promptTextMy = plainText(promptMy);
     const { answers, mediaIds, errors } = normalizeAnswers(
       type,
       rawAnswers,
-      promptText,
+      promptTextMy,
     );
-    if (!promptText) errors.unshift(QUESTION_ERRORS.PROMPT_EMPTY);
+    if (!promptTextMy) errors.unshift(QUESTION_ERRORS.PROMPT_EMPTY);
     if (errors.length > 0) throw new BadRequestException(errors);
 
     return {
       data: {
-        prompt,
-        promptText,
+        promptMy,
+        promptTextMy,
         promptMediaIds,
         answers: answers as Prisma.InputJsonObject,
       },
       mediaIds: [...new Set([...promptMediaIds, ...mediaIds])],
     };
+  }
+
+  /**
+   * English translation columns (Q24); `undefined` leaves a field as it is, and null or no text clears the prompt.
+   * FILL_BLANK is Myanmar only: English text is rejected and any stored English is cleared (e.g. after a type change).
+   */
+  private prepareEnglish(
+    type: QuestionType,
+    {
+      promptEn,
+      explanationEn,
+    }: Pick<CreateQuestionDto, 'promptEn' | 'explanationEn'>,
+  ) {
+    if (type === 'FILL_BLANK') {
+      if (
+        (promptEn && plainText(promptEn)) ||
+        (explanationEn && plainText(explanationEn))
+      ) {
+        throw new BadRequestException([
+          QUESTION_ERRORS.NO_ENGLISH_FOR_FILL_BLANK,
+        ]);
+      }
+      return {
+        promptEn: Prisma.DbNull,
+        promptTextEn: null,
+        explanationEn: Prisma.DbNull,
+      };
+    }
+    const explanation = { explanationEn: jsonOrNull(explanationEn) };
+    if (promptEn === undefined) return explanation;
+    const text = promptEn && plainText(promptEn);
+    return promptEn && text
+      ? { ...explanation, promptEn, promptTextEn: text }
+      : { ...explanation, promptEn: Prisma.DbNull, promptTextEn: null };
   }
 
   /** Swaps storage keys for signed URLs and flattens the quiz references. */

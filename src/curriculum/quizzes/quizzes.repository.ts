@@ -35,7 +35,7 @@ const QUIZ_INCLUDE = {
           id: true,
           code: true,
           type: true,
-          promptText: true,
+          promptTextMy: true,
           points: true,
           // The Chapter End Test mixes units; the dashboard shows each question's unit.
           unit: { select: { id: true, code: true } },
@@ -55,10 +55,14 @@ const toQuiz = ({ questions, ...quiz }: QuizRow) => ({
     (sum, { question }) => sum + question.points,
     0,
   ),
-  questions: questions.map(({ question }, index) => ({
-    ...question,
-    sequence: index + 1,
-  })),
+  // Quiz lists show the Myanmar prompt (Q24: it's the required one).
+  questions: questions.map(
+    ({ question: { promptTextMy, ...question } }, index) => ({
+      promptText: promptTextMy,
+      ...question,
+      sequence: index + 1,
+    }),
+  ),
 });
 
 /** Module, unit quizzes before the Chapter End Test, unit order, then code. */

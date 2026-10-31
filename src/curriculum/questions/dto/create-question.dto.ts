@@ -39,9 +39,20 @@ export class CreateQuestionDto {
   type: QuestionType;
 
   @RichText(
-    'Rich-text prompt (TipTap JSON). FILL_BLANK: type ___ for each blank',
+    'Myanmar prompt (TipTap JSON), required: questions are Myanmar-first (Q24). FILL_BLANK: type ___ for each blank',
   )
-  prompt: Prisma.InputJsonObject;
+  promptMy: Prisma.InputJsonObject;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    nullable: true,
+    description:
+      'Optional English translation of the prompt; null or no text clears it. Not allowed for FILL_BLANK (its blanks are Myanmar words)',
+  })
+  @IsOptional()
+  @IsObject()
+  promptEn?: Prisma.InputJsonObject | null;
 
   @ApiPropertyOptional({
     type: [String],
@@ -74,11 +85,22 @@ export class CreateQuestionDto {
     type: 'object',
     additionalProperties: true,
     nullable: true,
-    description: 'Optional rich-text explanation; null clears it',
+    description: 'Optional Myanmar explanation; null clears it',
   })
   @IsOptional()
   @IsObject()
-  explanation?: Prisma.InputJsonObject | null;
+  explanationMy?: Prisma.InputJsonObject | null;
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    nullable: true,
+    description:
+      'Optional English explanation; null clears it. Not allowed for FILL_BLANK',
+  })
+  @IsOptional()
+  @IsObject()
+  explanationEn?: Prisma.InputJsonObject | null;
 
   @ApiProperty({ example: 1, minimum: 1, maximum: QUESTION_LIMITS.MAX_POINTS })
   @IsInt()
